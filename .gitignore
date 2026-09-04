@@ -1,0 +1,5 @@
+__pycache__/
+hasil/*.json
+hasil/*.csv
+!hasil/.gitkeep
+!hasil/contoh_*
