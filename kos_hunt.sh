@@ -47,7 +47,10 @@ for x in d:
         "nama": x.get('title',''), "harga_min": p or '',
         "tipe": x.get('jenis',''), "kecamatan": x.get('kecamatan',''),
         "kelurahan": x.get('kelurahan',''), "alamat": x.get('alamat',''),
-        "fasilitas": (x.get('fasilitas') or '')[:200], "kontak": ",".join(x.get('kontak') or []),
+        "fasilitas": (x.get('fasilitas') or '')[:200],
+        "pemilik": x.get('nama_pemilik') or '',
+        "telp": x.get('telp') or '', "hp": x.get('hp') or '',
+        "wa": x.get('wa') or '', "wa_link": x.get('wa_link') or '',
         "link": x.get('url',''),
     })
 rows.sort(key=lambda r: (r['harga_min'] or 10**12))

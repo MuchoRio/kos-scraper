@@ -91,6 +91,28 @@ def parse_detail(url):
     d["fasilitas"] = (m.group(1).strip()[:400] if m else None)
     phones = sorted(set(re.findall(r"(?:0\d{9,13})", text)))
     d["kontak"] = phones[:3]
+    # structured contact fields straight from the seller block (more reliable
+    # than regexing the whole page text)
+    def _field(label):
+        m = re.search(re.escape(label) + r"</div>\s*<div[^>]*>\s*(?:<!--.*?-->\s*)*([0-9+\s.\-]{6,25})",
+                       html, re.S)
+        return re.sub(r"\s+", "", m.group(1)) if m else None
+    d["nama_pemilik"] = None
+    m = re.search(r'<li class="name">\s*(.*?)\s*(?:<|&)', html, re.S)
+    if m:
+        d["nama_pemilik"] = clean(m.group(1))[:60] or None
+    d["telp"] = _field("Telepon")
+    d["hp"] = _field("Nomor HP")
+    d["wa"] = _field("Whatsapp")
+    # wa link helper (normalize 08.. -> 628..)
+    wa = d["wa"] or d["hp"] or d["telp"]
+    if wa:
+        digits = re.sub(r"\D", "", wa)
+        if digits.startswith("08"):
+            digits = "62" + digits[1:]
+        d["wa_link"] = f"https://wa.me/{digits}" if len(digits) >= 10 else None
+    else:
+        d["wa_link"] = None
     return d
 
 def match_kw(item, keywords):
