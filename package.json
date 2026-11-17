@@ -1,0 +1,27 @@
+{
+  "name": "kos-scraper-studio",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm --workspace=client run build",
+    "start": "cross-env NODE_ENV=production node server/src/index.js",
+    "lint": "npm --workspace=client run typecheck",
+    "test:python": "node scripts/run-python-tests.mjs",
+    "test:server": "npm --workspace=server run test",
+    "test": "node scripts/run-all-tests.mjs"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
+}
+
