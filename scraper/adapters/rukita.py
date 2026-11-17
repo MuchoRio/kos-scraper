@@ -126,7 +126,6 @@ class RukitaAdapter(SourceAdapter):
             raw_imgs.extend(image_raw)
         elif isinstance(image_raw, str):
             raw_imgs.append(image_raw)
-        raw_imgs.extend(doc.xpath('//img[contains(@src, "rukita") or contains(@src, "cloudfront")]/@src'))
         raw_imgs.append(hint.get("image_url"))
         image_urls = dedup_image_urls(raw_imgs)
         image_url = image_urls[0] if image_urls else None

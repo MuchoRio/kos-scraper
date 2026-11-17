@@ -156,7 +156,7 @@ def match_keywords(item: dict[str, Any], keywords: list[str]) -> list[str]:
 
 
 def dedup_image_urls(urls: Iterable[Any], limit: int = 12) -> list[str]:
-    """Return ordered, deduplicated HTTP(S) image URLs bounded by limit."""
+    """Return ordered, deduplicated HTTP(S) image URLs excluding non-photo/placeholder assets."""
     out: list[str] = []
     seen: set[str] = set()
     for raw in urls:
@@ -164,6 +164,12 @@ def dedup_image_urls(urls: Iterable[Any], limit: int = 12) -> list[str]:
             continue
         clean = raw.strip()
         if not clean or not clean.startswith(("http://", "https://")) or clean in seen:
+            continue
+        if re.search(
+            r"(?:\.svg|\.html|/favicon|Ic_Verified|2b5f0791-94da-45df-98a0-2362a3bf96a9)(?:$|[/?#])",
+            clean,
+            re.I,
+        ):
             continue
         seen.add(clean)
         out.append(clean)

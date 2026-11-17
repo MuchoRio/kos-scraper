@@ -37,6 +37,37 @@ class TestNewAdapters(unittest.TestCase):
         self.assertIn("Wifi", detail.fasilitas_list)
         self.assertIsNotNone(detail.lat)
 
+    def test_infokost_blocks_carousel_bleed_and_proposed_placeholders(self) -> None:
+        from scraper.models import dedup_image_urls
+
+        proposed_html = """
+        <html><body>
+          <h1>Kost Proposed Tanpa Foto</h1>
+          <a href="/listings/kost-proposed-1/media?media=photo">
+            <img src="https://images.rukita.co/ais/2b5f0791-94da-45df-98a0-2362a3bf96a9.png"/>
+          </a>
+          <div class="scrollbar-hide">
+            <a class="bg-noir-0" href="/listings/other-kost-99">
+              <img src="https://images.rukita.co/buildings/roomvariantphoto/photo/other-room.jpg"/>
+            </a>
+          </div>
+          <script>self.__next_f.push([1,"{\\"status\\":\\"5_PROPOSED\\",\\"address\\":\\"Jl. Kemang Baru 10, [106.82, -6.25]\\",\\"coordinate\\":{\\"latitude\\":\\"-6.2561\\",\\"longitude\\":\\"106.8178\\"},\\"commercialType\\":\\"NONE\\"},\\"assetDisplay\\":{\\"assetId\\":1,\\"assetMedias\\":[{\\"id\\":1,\\"type\\":\\"IMAGE\\",\\"url\\":\\"https://images.rukita.co/ais/2b5f0791-94da-45df-98a0-2362a3bf96a9.png\\"}]},\\"variantDisplay\\":{\\"variantId\\":2,\\"medias\\":[{\\"id\\":2,\\"type\\":\\"IMAGE\\",\\"url\\":\\"https://images.rukita.co/ais/2b5f0791-94da-45df-98a0-2362a3bf96a9.png\\"}]}"])</script>
+        </body></html>
+        """
+        detail = InfokostAdapter().parse_detail(
+            "https://infokost.id/listings/kost-proposed-1",
+            html=proposed_html,
+            listing_hint={"image_url": "https://images.rukita.co/ais/2b5f0791-94da-45df-98a0-2362a3bf96a9.png"},
+        )
+        self.assertEqual(detail.image_urls, [])
+        self.assertIsNone(detail.image_url)
+        self.assertEqual(detail.alamat, "Jl. Kemang Baru 10")
+        self.assertAlmostEqual(detail.lat or 0.0, -6.2561, places=3)
+        self.assertEqual(
+            dedup_image_urls(["https://cdn.test/logo.svg", "https://cdn.test/real.jpg"]),
+            ["https://cdn.test/real.jpg"],
+        )
+
     def test_cove_next_data_list_and_detail_fixtures(self) -> None:
         list_html = (FIXTURES / "cove_list.html").read_text(encoding="utf-8")
         detail_html = (FIXTURES / "cove_detail.html").read_text(encoding="utf-8")

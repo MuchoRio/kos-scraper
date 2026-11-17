@@ -10,6 +10,7 @@ import lxml.html
 
 from ..models import KosListing, dedup_image_urls, extract_all_prices, format_idr, parse_price
 from .base import SourceAdapter
+from .infokost_rsc import extract_infokost_rsc_meta
 
 _JENIS_MAP = {
     "cewek": "Kost Putri",
@@ -137,7 +138,9 @@ class InfokostAdapter(SourceAdapter):
                 ),
                 subdistrict_label,
             )
-            img = next(iter(anchor.xpath(".//img/@src | .//img/@data-src")), None)
+            raw_img = next(iter(anchor.xpath(".//img/@src | .//img/@data-src")), None)
+            card_imgs = dedup_image_urls([raw_img])
+            img = card_imgs[0] if card_imgs else None
 
             items.append({
                 "source": self.name,
@@ -214,18 +217,19 @@ class InfokostAdapter(SourceAdapter):
                     if t and t not in facilities and len(t) <= 45:
                         facilities.append(t)
 
+        rsc = extract_infokost_rsc_meta(raw_html)
         body_head = _clean(" ".join(doc.xpath("//body//text()")[:80]))
         jenis = hint.get("jenis") or _map_jenis(body_head)
         lat_match = re.search(r"lat=(-?\d+\.\d+)&(?:amp;)?lng=(-?\d+\.\d+)", raw_html)
-        lat = float(lat_match.group(1)) if lat_match else None
-        lon = float(lat_match.group(2)) if lat_match else None
+        lat = float(lat_match.group(1)) if lat_match else rsc["lat"]
+        lon = float(lat_match.group(2)) if lat_match else rsc["lon"]
 
-        raw_imgs = (
-            doc.xpath('//img[contains(@src, "roomvariantphoto")]/@src')
-            + doc.xpath('//img[contains(@src, "propertyphoto") or contains(@src, "building")]/@src')
-            + [hint.get("image_url")]
-        )
-        image_urls = dedup_image_urls(raw_imgs)
+        if rsc["unphotographed"]:
+            image_urls: list[str] = []
+        else:
+            hero_imgs = doc.xpath('//a[contains(@href, "/media?media=photo")]//img/@src')
+            raw_imgs = list(rsc["media_urls"]) + hero_imgs + [hint.get("image_url")]
+            image_urls = dedup_image_urls(raw_imgs)
         img = image_urls[0] if image_urls else None
         all_prices = extract_all_prices(price_raw, min_monthly=100_000)
 
@@ -242,7 +246,7 @@ class InfokostAdapter(SourceAdapter):
             price_source="infokost_dom" if price_raw else "listing_card",
             jenis=jenis,
             kecamatan=hint.get("kecamatan"),
-            alamat=hint.get("kecamatan"),
+            alamat=rsc["address"] or hint.get("kecamatan"),
             fasilitas=(", ".join(facilities)[:400] if facilities else None),
             fasilitas_list=facilities,
             image_url=img,
