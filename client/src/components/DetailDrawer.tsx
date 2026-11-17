@@ -17,6 +17,7 @@ import { NearbyTransitSection } from "./NearbyTransitSection";
 import { ScamAlertBanner } from "./ScamAlertBanner";
 import type { KosItem } from "../types/kos";
 import { formatIdr, maskPhoneDisplay } from "../utils/formatters";
+import { distanceToLandmarkKm } from "../utils/transitFinder";
 
 interface DetailDrawerProps {
   item: KosItem | null;
@@ -190,6 +191,14 @@ export function DetailDrawer({
           <div className="text-xs text-[var(--text-muted)]">
             {[item.kelurahan, item.kecamatan].filter(Boolean).join(", ")}
           </div>
+          {(() => {
+            const bm = distanceToLandmarkKm(item, "bank-mega");
+            return bm ? (
+              <div className="text-xs font-medium text-[var(--accent-text)] font-mono-tabular">
+                {bm.distanceKm.toFixed(2)} km dari {bm.label}
+              </div>
+            ) : null;
+          })()}
           {mapsUrl && (
             <a
               href={mapsUrl}

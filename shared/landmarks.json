@@ -1,0 +1,9 @@
+[
+  { "id": "bank-mega", "label": "Menara Bank Mega (Tendean)", "lat": -6.2409, "lon": 106.8302 },
+  { "id": "blok-m", "label": "MRT Blok M BCA", "lat": -6.2443, "lon": 106.7981 },
+  { "id": "cipete", "label": "MRT Cipete Raya", "lat": -6.2784, "lon": 106.7973 },
+  { "id": "sudirman", "label": "Stasiun Sudirman / Dukuh Atas", "lat": -6.2008, "lon": 106.8232 },
+  { "id": "kuningan", "label": "Kuningan / Mega Kuningan", "lat": -6.2297, "lon": 106.8295 },
+  { "id": "kemang", "label": "Kemang Raya", "lat": -6.2608, "lon": 106.8147 },
+  { "id": "ui-depok", "label": "Kampus UI Depok", "lat": -6.3606, "lon": 106.8272 }
+]

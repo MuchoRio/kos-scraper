@@ -169,7 +169,14 @@ class TestTransitProximity(unittest.TestCase):
         self.assertIsNone(compute_nearby_transit(None, None))
 
     def test_dedup_image_urls_filters_relative_and_duplicates(self) -> None:
-        from scraper.models import dedup_image_urls
+        from scraper.models import LANDMARK_REFS, dedup_image_urls
+        from scraper.transit import compute_nearby_transit
+
+        self.assertEqual(LANDMARK_REFS[0]["id"], "bank-mega")
+        near_mega = compute_nearby_transit(-6.2409, 106.8302)
+        self.assertIsNotNone(near_mega)
+        assert near_mega is not None
+        self.assertIn("Tendean", near_mega["nearest"]["name"])
 
         urls = dedup_image_urls([
             "https://img.example/1.jpg",

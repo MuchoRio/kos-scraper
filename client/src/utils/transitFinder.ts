@@ -1,3 +1,4 @@
+import landmarksData from "../../../shared/landmarks.json";
 import transumHubs from "../../../shared/transum_hubs.json";
 import type { KosAttributes, KosItem, NearbyStop, NearbyTransitInfo, TransitCategory } from "../types/kos";
 
@@ -105,5 +106,25 @@ export function matchesTransitCriteria(
     return MODE_PATTERNS[transitMode].test(textBlob);
   }
   return attr.transum;
+}
+
+export function distanceToLandmarkKm(
+  item: KosItem,
+  landmarkId = "bank-mega"
+): { label: string; distanceKm: number } | null {
+  if (
+    typeof item.lat !== "number" ||
+    typeof item.lon !== "number" ||
+    !Number.isFinite(item.lat) ||
+    !Number.isFinite(item.lon)
+  ) {
+    return null;
+  }
+  const target = landmarksData.find((l) => l.id === landmarkId);
+  if (!target) return null;
+  return {
+    label: target.label,
+    distanceKm: haversineKm(item.lat, item.lon, target.lat, target.lon),
+  };
 }
 

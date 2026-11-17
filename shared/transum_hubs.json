@@ -1,5 +1,6 @@
 {
   "busway": [
+    { "name": "Halte TJ Tegal Mampang (Tendean)", "lat": -6.2402, "lon": 106.8309 },
     { "name": "Halte Transjakarta Blok M", "lat": -6.2435, "lon": 106.8016 },
     { "name": "Halte Transjakarta CSW", "lat": -6.2392, "lon": 106.7987 },
     { "name": "Halte Transjakarta Masjid Agung", "lat": -6.2364, "lon": 106.7984 },

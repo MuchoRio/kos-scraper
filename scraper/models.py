@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Iterable
+
+_LANDMARKS_FILE = Path(__file__).resolve().parent.parent / "shared" / "landmarks.json"
 
 PRESET_AREAS: list[dict[str, str]] = [
     {"slug": "jakarta-selatan", "label": "Jakarta Selatan"},
@@ -20,14 +24,7 @@ PRESET_AREAS: list[dict[str, str]] = [
     {"slug": "yogyakarta", "label": "Yogyakarta"},
 ]
 
-LANDMARK_REFS: list[dict[str, Any]] = [
-    {"id": "blok-m", "label": "MRT Blok M BCA", "lat": -6.2443, "lon": 106.7981},
-    {"id": "cipete", "label": "MRT Cipete Raya", "lat": -6.2784, "lon": 106.7973},
-    {"id": "sudirman", "label": "Stasiun Sudirman / Dukuh Atas", "lat": -6.2008, "lon": 106.8232},
-    {"id": "kuningan", "label": "Kuningan / Mega Kuningan", "lat": -6.2297, "lon": 106.8295},
-    {"id": "kemang", "label": "Kemang Raya", "lat": -6.2608, "lon": 106.8147},
-    {"id": "ui-depok", "label": "Kampus UI Depok", "lat": -6.3606, "lon": 106.8272},
-]
+LANDMARK_REFS: list[dict[str, Any]] = json.loads(_LANDMARKS_FILE.read_text(encoding="utf-8"))
 
 
 @dataclass

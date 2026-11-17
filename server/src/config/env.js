@@ -29,14 +29,9 @@ export const PRESET_AREAS = [
   { slug: "yogyakarta", label: "Yogyakarta" },
 ];
 
-export const LANDMARK_REFS = [
-  { id: "blok-m", label: "MRT Blok M BCA", lat: -6.2443, lon: 106.7981 },
-  { id: "cipete", label: "MRT Cipete Raya", lat: -6.2784, lon: 106.7973 },
-  { id: "sudirman", label: "Stasiun Sudirman / Dukuh Atas", lat: -6.2008, lon: 106.8232 },
-  { id: "kuningan", label: "Kuningan / Mega Kuningan", lat: -6.2297, lon: 106.8295 },
-  { id: "kemang", label: "Kemang Raya", lat: -6.2608, lon: 106.8147 },
-  { id: "ui-depok", label: "Kampus UI Depok", lat: -6.3606, lon: 106.8272 },
-];
+export const LANDMARK_REFS = JSON.parse(
+  fs.readFileSync(path.join(ROOT_DIR, "shared", "landmarks.json"), "utf8")
+);
 
 export function resolvePythonBinary() {
   if (process.env.PYTHON_BIN) return process.env.PYTHON_BIN;

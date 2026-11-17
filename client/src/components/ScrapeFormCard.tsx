@@ -40,7 +40,7 @@ export function ScrapeFormCard({
   const [concurrency, setConcurrency] = useState("4");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [keywords, setKeywords] = useState("kemang,blok m,cipete,mampang");
-  const [landmarkId, setLandmarkId] = useState("blok-m");
+  const [landmarkId, setLandmarkId] = useState("bank-mega");
   const [enableGeo, setEnableGeo] = useState(true);
   const [enableGmaps, setEnableGmaps] = useState(true);
 
@@ -56,7 +56,7 @@ export function ScrapeFormCard({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const ref = landmarks.find((l) => l.id === landmarkId) || null;
+    const ref = landmarks.find((l) => l.id === landmarkId) || landmarks[0] || null;
     const limit = Math.min(60, Math.max(1, Number(targetKos) || 20));
     const pages = showAdvanced
       ? Math.min(15, Math.max(1, Number(maxPages) || 6))
