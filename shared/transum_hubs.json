@@ -1,0 +1,76 @@
+{
+  "busway": [
+    { "name": "Halte Transjakarta Blok M", "lat": -6.2435, "lon": 106.8016 },
+    { "name": "Halte Transjakarta CSW", "lat": -6.2392, "lon": 106.7987 },
+    { "name": "Halte Transjakarta Masjid Agung", "lat": -6.2364, "lon": 106.7984 },
+    { "name": "Halte Transjakarta Bundaran Senayan", "lat": -6.2275, "lon": 106.8013 },
+    { "name": "Halte Transjakarta Mampang Prapatan", "lat": -6.2424, "lon": 106.8257 },
+    { "name": "Halte Transjakarta Duren Tiga", "lat": -6.2528, "lon": 106.8273 },
+    { "name": "Halte Transjakarta Imigrasi Buncit", "lat": -6.2624, "lon": 106.8295 },
+    { "name": "Halte Transjakarta Pejaten", "lat": -6.2764, "lon": 106.8300 },
+    { "name": "Halte Transjakarta Kuningan", "lat": -6.2244, "lon": 106.8330 },
+    { "name": "Halte Transjakarta Dukuh Atas", "lat": -6.2055, "lon": 106.8218 },
+    { "name": "Halte Transjakarta Pancoran", "lat": -6.2429, "lon": 106.8373 },
+    { "name": "Halte Transjakarta Tebet Eco Park", "lat": -6.2427, "lon": 106.8548 },
+    { "name": "Halte Transjakarta Semanggi", "lat": -6.2212, "lon": 106.8136 },
+    { "name": "Halte Transjakarta Ragunan", "lat": -6.3055, "lon": 106.8190 },
+    { "name": "Halte Transjakarta Pasar Minggu", "lat": -6.2836, "lon": 106.8442 },
+    { "name": "Halte Transjakarta Harmoni", "lat": -6.1659, "lon": 106.8204 },
+    { "name": "Halte Transjakarta Grogol", "lat": -6.1673, "lon": 106.7897 },
+    { "name": "Halte Transjakarta Cawang Central", "lat": -6.2454, "lon": 106.8716 }
+  ],
+  "mrt": [
+    { "name": "MRT Lebak Bulus Grab", "lat": -6.2893, "lon": 106.7749 },
+    { "name": "MRT Fatmawati Indomaret", "lat": -6.2925, "lon": 106.7927 },
+    { "name": "MRT Cipete Raya", "lat": -6.2785, "lon": 106.7973 },
+    { "name": "MRT Haji Nawi", "lat": -6.2667, "lon": 106.7974 },
+    { "name": "MRT Blok A", "lat": -6.2557, "lon": 106.7972 },
+    { "name": "MRT Blok M BCA", "lat": -6.2444, "lon": 106.7981 },
+    { "name": "MRT ASEAN", "lat": -6.2389, "lon": 106.7985 },
+    { "name": "MRT Senayan Mastercard", "lat": -6.2266, "lon": 106.8025 },
+    { "name": "MRT Istora Mandiri", "lat": -6.2224, "lon": 106.8087 },
+    { "name": "MRT Bendungan Hilir", "lat": -6.2150, "lon": 106.8180 },
+    { "name": "MRT Setiabudi Astra", "lat": -6.2089, "lon": 106.8216 },
+    { "name": "MRT Dukuh Atas BNI", "lat": -6.2008, "lon": 106.8228 },
+    { "name": "MRT Bundaran HI", "lat": -6.1931, "lon": 106.8230 }
+  ],
+  "krl": [
+    { "name": "Stasiun KRL Tebet", "lat": -6.2261, "lon": 106.8584 },
+    { "name": "Stasiun KRL Cawang", "lat": -6.2426, "lon": 106.8587 },
+    { "name": "Stasiun KRL Duren Kalibata", "lat": -6.2554, "lon": 106.8551 },
+    { "name": "Stasiun KRL Pasar Minggu", "lat": -6.2845, "lon": 106.8446 },
+    { "name": "Stasiun KRL Tanjung Barat", "lat": -6.3078, "lon": 106.8388 },
+    { "name": "Stasiun KRL Manggarai", "lat": -6.2099, "lon": 106.8502 },
+    { "name": "Stasiun KRL Sudirman", "lat": -6.2024, "lon": 106.8235 },
+    { "name": "Stasiun KRL Karet", "lat": -6.2007, "lon": 106.8156 },
+    { "name": "Stasiun KRL Tanah Abang", "lat": -6.1857, "lon": 106.8109 },
+    { "name": "Stasiun KRL Palmerah", "lat": -6.2074, "lon": 106.7975 },
+    { "name": "Stasiun KRL Kebayoran", "lat": -6.2371, "lon": 106.7825 },
+    { "name": "Stasiun KRL Pondok Ranji", "lat": -6.2768, "lon": 106.7445 },
+    { "name": "Stasiun KRL UI Depok", "lat": -6.3606, "lon": 106.8316 },
+    { "name": "Stasiun KRL Gondangdia", "lat": -6.1858, "lon": 106.8325 },
+    { "name": "Stasiun KRL Cikini", "lat": -6.1985, "lon": 106.8414 }
+  ],
+  "lrt": [
+    { "name": "LRT Dukuh Atas", "lat": -6.2012, "lon": 106.8249 },
+    { "name": "LRT Setiabudi", "lat": -6.2096, "lon": 106.8299 },
+    { "name": "LRT Rasuna Said", "lat": -6.2202, "lon": 106.8323 },
+    { "name": "LRT Kuningan", "lat": -6.2291, "lon": 106.8330 },
+    { "name": "LRT Pancoran", "lat": -6.2423, "lon": 106.8390 },
+    { "name": "LRT Cikoko", "lat": -6.2435, "lon": 106.8576 },
+    { "name": "LRT Ciliwung", "lat": -6.2435, "lon": 106.8673 },
+    { "name": "LRT Cawang", "lat": -6.2458, "lon": 106.8712 }
+  ],
+  "mall": [
+    { "name": "Lippo Mall Kemang", "lat": -6.2602, "lon": 106.8126 },
+    { "name": "Blok M Square / Plaza", "lat": -6.2441, "lon": 106.7999 },
+    { "name": "Pondok Indah Mall", "lat": -6.2654, "lon": 106.7841 },
+    { "name": "Kota Kasablanka", "lat": -6.2241, "lon": 106.8427 },
+    { "name": "Kuningan City / Lotte", "lat": -6.2238, "lon": 106.8286 },
+    { "name": "Gandaria City", "lat": -6.2443, "lon": 106.7834 },
+    { "name": "Grand Indonesia", "lat": -6.1950, "lon": 106.8209 },
+    { "name": "Pejaten Village", "lat": -6.2809, "lon": 106.8286 },
+    { "name": "Pacific Place SCBD", "lat": -6.2251, "lon": 106.8099 }
+  ]
+}
+
