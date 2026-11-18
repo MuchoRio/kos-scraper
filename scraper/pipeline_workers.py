@@ -40,6 +40,9 @@ def infer_source_from_url(url: str) -> str:
         ("mamikos", "mamikos.com"),
         ("infokost", "infokost.id"),
         ("cove", "cove.id"),
+        ("djuragankamar", "djuragankamar.com"),
+        ("rumah123", "rumah123.com"),
+        ("kostjakarta", "kostjakarta.com"),
     ):
         if domain in low:
             return name

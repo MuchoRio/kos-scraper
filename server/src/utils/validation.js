@@ -1,4 +1,13 @@
-const ALLOWED_SOURCES = new Set(["sewakost", "rukita", "mamikos", "infokost", "cove"]);
+const ALLOWED_SOURCES = new Set([
+  "sewakost",
+  "rukita",
+  "mamikos",
+  "infokost",
+  "cove",
+  "djuragankamar",
+  "rumah123",
+  "kostjakarta",
+]);
 const AREA_SLUG_RE = /^[a-z0-9-]{2,60}$/;
 const SAFE_FILENAME_RE = /^[a-zA-Z0-9_.-]+\.(json|csv)$/;
 const FORMULA_PREFIX_RE = /^[=+\-@\t\r]/;

@@ -77,9 +77,18 @@ class InfokostAdapter(SourceAdapter):
     name = "infokost"
     base_url = "https://infokost.id"
 
-    def build_list_url(self, area: str = "jakarta-selatan", page: int = 1) -> str:
+    def build_list_url(
+        self,
+        area: str = "jakarta-selatan",
+        page: int = 1,
+        sort: str = "default",
+        order: str = "desc",
+    ) -> str:
         base = f"{self.base_url}/kost/{area}"
-        return f"{base}/{page}" if page > 1 else base
+        url = f"{base}/{page}" if page > 1 else base
+        if sort == "price" and order == "asc":
+            return f"{url}?sort=lowest_price"
+        return url
 
     def _parse_cards(
         self,
@@ -178,7 +187,7 @@ class InfokostAdapter(SourceAdapter):
         sub_idx = (page - 1) % len(target_areas)
         sub_page = ((page - 1) // len(target_areas)) + 1
         target_slug = target_areas[sub_idx]
-        url = self.build_list_url(area=target_slug, page=sub_page)
+        url = self.build_list_url(area=target_slug, page=sub_page, sort=sort, order=order)
         raw_html = self.client.get(url)
         doc = lxml.html.fromstring(raw_html)
         items = self._parse_cards(doc, max_price=max_price, area_slug=target_slug)
@@ -217,6 +226,25 @@ class InfokostAdapter(SourceAdapter):
                     if t and t not in facilities and len(t) <= 45:
                         facilities.append(t)
 
+        peraturan: list[str] = []
+        rule_nodes = doc.xpath('//*[contains(text(), "PERATURAN KOST")]/following-sibling::*[1]')
+        if rule_nodes:
+            for el in rule_nodes[0].xpath(".//p | .//li | .//div"):
+                t = _clean(el.text_content())
+                if t and len(t) <= 120 and t not in peraturan and not any(t in prev or prev in t for prev in peraturan):
+                    peraturan.append(t)
+            if not peraturan:
+                raw_rule = _clean(rule_nodes[0].text_content())
+                if raw_rule:
+                    peraturan.append(raw_rule[:200])
+
+        nama_pemilik: str | None = None
+        mgr_nodes = doc.xpath('//*[contains(text(), "PENGELOLA")]/following-sibling::*[1]')
+        if mgr_nodes:
+            mgr_txt = _clean(mgr_nodes[0].text_content())
+            m_mgr = re.search(r"Dikelola oleh\s+([A-Za-z0-9 &.'-]+?)(?:Hunian|$)", mgr_txt)
+            nama_pemilik = (m_mgr.group(1).strip() if m_mgr else mgr_txt)[:60] or None
+
         rsc = extract_infokost_rsc_meta(raw_html)
         body_head = _clean(" ".join(doc.xpath("//body//text()")[:80]))
         jenis = hint.get("jenis") or _map_jenis(body_head)
@@ -249,8 +277,10 @@ class InfokostAdapter(SourceAdapter):
             alamat=rsc["address"] or hint.get("kecamatan"),
             fasilitas=(", ".join(facilities)[:400] if facilities else None),
             fasilitas_list=facilities,
+            peraturan=peraturan,
             image_url=img,
             image_urls=image_urls,
             lat=lat,
             lon=lon,
+            nama_pemilik=nama_pemilik,
         )

@@ -72,7 +72,16 @@ test("API health, presets, and validation reject unsafe payloads with JSON", asy
 
   const health = await fetch(`${srv.baseUrl}/api/health`).then((r) => r.json());
   assert.equal(health.success, true);
-  assert.deepEqual(health.adapters, ["sewakost", "rukita", "mamikos", "infokost", "cove"]);
+  assert.deepEqual(health.adapters, [
+    "sewakost",
+    "rukita",
+    "mamikos",
+    "infokost",
+    "cove",
+    "djuragankamar",
+    "rumah123",
+    "kostjakarta",
+  ]);
 
   const presets = await fetch(`${srv.baseUrl}/api/presets`).then((r) => r.json());
   assert.equal(presets.landmarks[0].id, "bank-mega");

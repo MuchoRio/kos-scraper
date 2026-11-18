@@ -41,14 +41,26 @@ class SourceAdapter(ABC):
 
 
 def list_adapters() -> list[str]:
-    return ["sewakost", "rukita", "mamikos", "infokost", "cove"]
+    return [
+        "sewakost",
+        "rukita",
+        "mamikos",
+        "infokost",
+        "cove",
+        "djuragankamar",
+        "rumah123",
+        "kostjakarta",
+    ]
 
 
 def get_adapter(name: str, client: PoliteHttpClient | None = None) -> SourceAdapter:
     from .cove import CoveAdapter
+    from .djuragankamar import DjuraganKamarAdapter
     from .infokost import InfokostAdapter
+    from .kostjakarta import KostJakartaAdapter
     from .mamikos import MamikosAdapter
     from .rukita import RukitaAdapter
+    from .rumah123 import Rumah123Adapter
     from .sewakost import SewakostAdapter
 
     registry: dict[str, type[SourceAdapter]] = {
@@ -57,6 +69,9 @@ def get_adapter(name: str, client: PoliteHttpClient | None = None) -> SourceAdap
         "mamikos": MamikosAdapter,
         "infokost": InfokostAdapter,
         "cove": CoveAdapter,
+        "djuragankamar": DjuraganKamarAdapter,
+        "rumah123": Rumah123Adapter,
+        "kostjakarta": KostJakartaAdapter,
     }
     key = name.strip().lower()
     if key not in registry:

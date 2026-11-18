@@ -12,7 +12,11 @@ from .runner import enrich_details, run_hunt, scrape_listings
 
 
 def _add_common_flags(sp: argparse.ArgumentParser, default_pages: int) -> None:
-    sp.add_argument("--sources", default="sewakost", help="Comma-separated: sewakost,rukita,mamikos,infokost,cove")
+    sp.add_argument(
+        "--sources",
+        default="sewakost",
+        help="Comma-separated: sewakost,rukita,mamikos,infokost,cove,djuragankamar,rumah123,kostjakarta",
+    )
     sp.add_argument("--area", default="jakarta-selatan")
     sp.add_argument("--max-price", type=int, default=None)
     sp.add_argument("--max-pages", type=int, default=default_pages)

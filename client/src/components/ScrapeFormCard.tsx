@@ -20,6 +20,9 @@ const SOURCE_OPTIONS: { id: SourceId; label: string }[] = [
   { id: "mamikos", label: "mamikos.com" },
   { id: "infokost", label: "infokost.id" },
   { id: "cove", label: "cove.id" },
+  { id: "djuragankamar", label: "djuragankamar.com" },
+  { id: "rumah123", label: "rumah123.com" },
+  { id: "kostjakarta", label: "kostjakarta.com" },
 ];
 
 export function ScrapeFormCard({
@@ -32,7 +35,15 @@ export function ScrapeFormCard({
   onChangeMapsApiKey,
   onStartJob,
 }: ScrapeFormCardProps) {
-  const [sources, setSources] = useState<SourceId[]>(["sewakost", "rukita", "mamikos"]);
+  const [sources, setSources] = useState<SourceId[]>([
+    "sewakost",
+    "rukita",
+    "mamikos",
+    "infokost",
+    "djuragankamar",
+    "rumah123",
+    "kostjakarta",
+  ]);
   const [area, setArea] = useState("jakarta-selatan");
   const [maxPrice, setMaxPrice] = useState("1500000");
   const [targetKos, setTargetKos] = useState("20");
@@ -112,10 +123,10 @@ export function ScrapeFormCard({
             );
           })}
           <span
-            title="99.co/id mengembalikan tantangan Cloudflare (HTTP 403) dan tidak di-bypass"
+            title="99.co (Cloudflare 403), Trovit (HTTP 401), Papikost (403/kosong), IdKos (down/404) tidak di-bypass"
             className="rounded-lg border border-dashed border-[var(--border-subtle)] px-2 py-1.5 text-xs text-[var(--text-muted)] whitespace-nowrap shrink-0"
           >
-            99.co (Cloudflare)
+            trovit/papikos/idkos/99 (blocked/down)
           </span>
         </div>
       </div>

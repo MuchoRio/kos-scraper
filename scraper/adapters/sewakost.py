@@ -278,6 +278,7 @@ class SewakostAdapter(SourceAdapter):
             ("df_field_pasutri", "Pasutri"),
             ("df_field_bawa_anak", "Bawa Anak"),
             ("df_field_jam_malam", "Jam Malam"),
+            ("df_field_hean_peliharaan", "Hewan Peliharaan"),
         ):
             vals = _field_values(doc, fid)
             if vals:

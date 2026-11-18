@@ -238,6 +238,9 @@ export function FilterModalSections({ draft, kecamatanOptions, onChange }: Filte
             { id: "mamikos", label: "mamikos.com" },
             { id: "infokost", label: "infokost.id" },
             { id: "cove", label: "cove.id" },
+            { id: "djuragankamar", label: "djuragankamar.com" },
+            { id: "rumah123", label: "rumah123.com" },
+            { id: "kostjakarta", label: "kostjakarta.com" },
           ]}
         />
       </section>

@@ -30,9 +30,20 @@ class RukitaAdapter(SourceAdapter):
     name = "rukita"
     base_url = "https://www.rukita.co"
 
-    def build_list_url(self, area: str = "jakarta-selatan", page: int = 1) -> str:
+    def build_list_url(
+        self,
+        area: str = "jakarta-selatan",
+        page: int = 1,
+        sort: str = "price",
+        order: str = "asc",
+    ) -> str:
         url = f"{self.base_url}/kost/{area}"
-        return f"{url}?page={page}" if page > 1 else url
+        params: list[str] = []
+        if page > 1:
+            params.append(f"page={page}")
+        if sort == "price" and order == "asc":
+            params.append("sort=lowest_price")
+        return f"{url}?{'&'.join(params)}" if params else url
 
     def list_page(
         self,
@@ -43,7 +54,7 @@ class RukitaAdapter(SourceAdapter):
         order: str = "asc",
         html: str | None = None,
     ) -> tuple[list[dict[str, Any]], bool, str]:
-        url = self.build_list_url(area=area, page=page)
+        url = self.build_list_url(area=area, page=page, sort=sort, order=order)
         raw_html = html if html is not None else self.client.get(url)
         doc = lxml.html.fromstring(raw_html)
 
@@ -117,6 +128,7 @@ class RukitaAdapter(SourceAdapter):
         price_suspect = resolved_price is None or resolved_price < 100_000
 
         fasilitas_list = self._extract_facilities(doc)
+        peraturan = self._extract_rules(doc)
         page_head_text = _clean_text(" ".join(doc.xpath("//body//text()")[:120]))
         jenis = hint.get("jenis") or _detect_jenis(page_head_text) or _detect_jenis(str(ld.get("description") or ""))
 
@@ -148,11 +160,28 @@ class RukitaAdapter(SourceAdapter):
             deskripsi=_clean_text(str(ld.get("description") or ""))[:600] or None,
             fasilitas=(", ".join(fasilitas_list)[:400] if fasilitas_list else None),
             fasilitas_list=fasilitas_list,
+            peraturan=peraturan,
             image_url=image_url,
             image_urls=image_urls,
             lat=lat,
             lon=lon,
         )
+
+    @staticmethod
+    def _extract_rules(doc: lxml.html.HtmlElement) -> list[str]:
+        rules: list[str] = []
+        body_text = _clean_text(" ".join(doc.xpath("//body//text()[not(ancestor::script)]")))
+        for pat in (
+            r"Pasutri\s+(?:Diperbolehkan|Tidak\s+Diperbolehkan)",
+            r"Tamu\s+(?:Lawan\s+Jenis\s+)?Dilarang\s+(?:Masuk\s+Kamar|Menginap)",
+            r"Boleh\s+Bawa\s+Hewan|Tidak\s+Boleh\s+Bawa\s+Hewan",
+            r"Akses\s+24\s+Jam",
+        ):
+            for m in re.finditer(pat, body_text, re.I):
+                val = _clean_text(m.group(0))
+                if val not in rules:
+                    rules.append(val)
+        return rules
 
     @staticmethod
     def _extract_lodging_json_ld(doc: lxml.html.HtmlElement) -> dict[str, Any]:

@@ -2,6 +2,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { AppError, safeResultFilename } from "../utils/validation.js";
 
+function inferSourceFromUrl(rawUrl) {
+  const url = String(rawUrl || "").toLowerCase();
+  const match = [
+    ["rukita", "rukita.co"],
+    ["mamikos", "mamikos.com"],
+    ["infokost", "infokost.id"],
+    ["cove", "cove.id"],
+    ["djuragankamar", "djuragankamar.com"],
+    ["rumah123", "rumah123.com"],
+    ["kostjakarta", "kostjakarta.com"],
+  ].find(([, domain]) => url.includes(domain));
+  return match ? match[0] : "sewakost";
+}
+
 export class DataStore {
   constructor(dataDir) {
     this.dataDir = dataDir;
@@ -41,7 +55,7 @@ export class DataStore {
     const raw = JSON.parse(fs.readFileSync(full, "utf8"));
     const items = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [];
     const normalized = items.map((it) => ({
-      source: it.source || (String(it.url || "").includes("rukita.co") ? "rukita" : "sewakost"),
+      source: it.source || inferSourceFromUrl(it.url),
       price_suspect: Boolean(it.price_suspect),
       fasilitas_list: Array.isArray(it.fasilitas_list) ? it.fasilitas_list : [],
       ...it,

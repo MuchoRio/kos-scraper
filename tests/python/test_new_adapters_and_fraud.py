@@ -193,6 +193,167 @@ class TestNewAdapters(unittest.TestCase):
             self.assertEqual(len(p2), 5)
             self.assertFalse(has_next2)
 
+    def test_existing_adapter_upgrades_rules_coords_and_sort(self) -> None:
+        from scraper.adapters.rukita import RukitaAdapter
+        from scraper.adapters.sewakost import SewakostAdapter
+
+        self.assertIn("sort=lowest_price", InfokostAdapter().build_list_url("jakarta-selatan", 1, sort="price", order="asc"))
+        self.assertIn("sort=lowest_price", RukitaAdapter().build_list_url("jakarta-selatan", 1, sort="price", order="asc"))
+
+        info_html = """
+        <html><body>
+          <h1>Kost Tes</h1>
+          <div class="text-2xl">Rp 1.400.000</div>
+          <h2>FASILITAS KAMAR</h2><div><span>WiFi</span><span>AC</span></div>
+          <h2>PERATURAN KOST</h2><div><p>Pasutri Diperbolehkan</p><p>Tamu maksimal jam 22.00</p></div>
+          <h2>PENGELOLA</h2><div><p>Dikelola oleh Rukita</p></div>
+        </body></html>
+        """
+        info_detail = InfokostAdapter().parse_detail("https://infokost.id/listings/test-1", html=info_html)
+        self.assertIn("Pasutri Diperbolehkan", info_detail.peraturan)
+        self.assertEqual(info_detail.nama_pemilik, "Rukita")
+
+        sewa_html = """
+        <html><body>
+          <h1>Kos Sewakost Tes</h1>
+          <div id="df_field_price"><span class="value">Rp 1.200.000</span></div>
+          <div id="df_field_hean_peliharaan"><span class="value">Boleh Kucing</span></div>
+        </body></html>
+        """
+        sewa_detail = SewakostAdapter().parse_detail("https://www.sewakost.com/kost/jakarta/jakarta-selatan/tes-1/", html=sewa_html)
+        self.assertIn("Hewan Peliharaan: Boleh Kucing", sewa_detail.peraturan)
+
+        import json as _json
+        cove_nd = {
+            "props": {
+                "pageProps": {
+                    "property": {
+                        "name": "Cove Uji",
+                        "slug": "cove-uji",
+                        "monthly_min_price": 3200000,
+                        "wifi": True,
+                        "microwave": True,
+                        "building": {"lat": -6.234, "lng": 106.817, "moto_parking": True, "area": {"name": {"id": "Kuningan"}}},
+                        "listings": [{"prices": {"monthly_min_price": 3200000}}, {"prices": {"monthly_min_price": 3600000}}],
+                        "media": [{"medium": "https://cdn.cove.test/room.jpg"}],
+                    }
+                }
+            }
+        }
+        cove_html = f'<html><script id="__NEXT_DATA__" type="application/json">{_json.dumps(cove_nd)}</script></html>'
+        cove_detail = CoveAdapter().parse_detail("https://cove.id/properties/cove-uji", html=cove_html)
+        self.assertAlmostEqual(cove_detail.lat or 0.0, -6.234, places=3)
+        self.assertAlmostEqual(cove_detail.lon or 0.0, 106.817, places=3)
+        self.assertIn("Microwave", cove_detail.fasilitas_list)
+        self.assertIn("Parkir Motor", cove_detail.fasilitas_list)
+        self.assertEqual(cove_detail.price_options, [3200000, 3600000])
+
+    def test_djuragankamar_rumah123_and_kostjakarta_adapters(self) -> None:
+        from scraper.adapters.djuragankamar import DjuraganKamarAdapter
+        from scraper.adapters.kostjakarta import KostJakartaAdapter
+        from scraper.adapters.rumah123 import Rumah123Adapter
+
+        # DjuraganKamar: skips daily rate as monthly rent, extracts locationsMap coords & monthly table + Tata Tertib
+        dk = DjuraganKamarAdapter()
+        dk_list_html = """
+        <html><body>
+          <div class="card">
+            <h3>Kost Senopati Test</h3>
+            <p>Jl. Birah II No.22, Kec. Kebayoran Baru, Jakarta Selatan</p>
+            <span>Harga mulai dari Rp 250.000 / Hari</span>
+            <img src="https://djuragankamar.com/img/load-image.webp" data-src="https://djuragan.sgp1.cdn.digitaloceanspaces.com/room1.jpg?X-Amz-Signature=abc"/>
+            <a href="https://djuragankamar.com/penginapan/kost-senopati_56">Lihat Penginapan</a>
+          </div>
+          <script>locationsMap.push({ lat: -6.2367, lng: 106.8160 });</script>
+        </body></html>
+        """
+        dk_items, _, _ = dk.list_page(area="jakarta-selatan", html=dk_list_html)
+        self.assertEqual(len(dk_items), 1)
+        self.assertIsNone(dk_items[0]["listing_price"])
+        self.assertAlmostEqual(dk_items[0]["lat"], -6.2367, places=4)
+        self.assertEqual(dk_items[0]["image_url"], "https://djuragan.sgp1.cdn.digitaloceanspaces.com/room1.jpg?X-Amz-Signature=abc")
+
+        dk_det_html = """
+        <html><body>
+          <h1>Kost Senopati Test</h1>
+          <p>Jl. Birah II No.22, Kec. Kby. Baru, Kota Jakarta Selatan</p>
+          <table><tr><td>Rp 1.450.000</td><td>Bulan</td></tr><tr><td>Rp 250.000</td><td>Hari</td></tr></table>
+          <div><h4>Fasilitas Kamar</h4><div><span>AC</span><span>Kasur</span></div></div>
+          <div><h4>Tata Tertib</h4><div><span>Hewan Tidak Diperbolehkan</span><span>Max. 2 Orang/Kamar</span></div></div>
+          <img src="https://djuragankamar.com/img/load-image.webp" data-src="https://djuragan.sgp1.cdn.digitaloceanspaces.com/room1.jpg?X-Amz-Signature=abc"/>
+        </body></html>
+        """
+        dk_det = dk.parse_detail(dk_items[0]["url"], html=dk_det_html, listing_hint=dk_items[0])
+        self.assertEqual(dk_det.price, 1450000)
+        self.assertIn("Hewan Tidak Diperbolehkan", dk_det.peraturan)
+        self.assertIn("AC", dk_det.fasilitas_list)
+
+        # Rumah123: filtered URL + JSON-LD @graph coordinates + description + WA
+        r123 = Rumah123Adapter()
+        self.assertIn("maxPrice=1500000", r123.build_list_url("jakarta-selatan", max_price=1500000, sort="price", order="asc"))
+        r_list_html = """
+        <html><body>
+          <div>
+            <span>Rp 950 Ribu /bulan</span>
+            <a href="/properti/jakarta-selatan-jagakarsa/kost-murah-jagakarsa-ksr339337/">Kost Murah Jagakarsa</a>
+            <img src="https://picture.rumah123.com/r123-images/720x420-crop/a.jpg"/>
+          </div>
+        </body></html>
+        """
+        r_items, _, _ = r123.list_page(area="jakarta-selatan", max_price=1500000, html=r_list_html)
+        self.assertEqual(len(r_items), 1)
+        self.assertEqual(r_items[0]["listing_price"], 950000)
+
+        r_det_html = """
+        <html><body>
+          <h1>Kost Murah Jagakarsa</h1>
+          <a href="https://wa.me/6281282601234">WA</a>
+          <script type="application/ld+json">
+          {"@type":"Organization","name":"Rumah123","address":{"addressLocality":"Kec. Tebet, Kota Jakarta Selatan"}}
+          </script>
+          <script type="application/ld+json">
+          {"@graph":[
+            {"@type":"RealEstateListing","description":"Kos nyaman bebas 24 jam","address":{"addressLocality":"Jagakarsa, Jakarta Selatan"},"geo":{"latitude":-6.3341,"longitude":106.8223},"offers":{"priceSpecification":{"price":"950000"}},"image":[{"url":"https://picture.rumah123.com/r123-images/1080x720-fit/b.jpg"}]},
+            {"@type":"RealEstateAgent","name":"Pak Agus"}
+          ]}
+          </script>
+        </body></html>
+        """
+        r_det = r123.parse_detail(r_items[0]["url"], html=r_det_html, listing_hint=r_items[0])
+        self.assertEqual(r_det.price, 950000)
+        self.assertEqual(r_det.kecamatan, "Jagakarsa")
+        self.assertEqual(r_det.alamat, "Jagakarsa, Jakarta Selatan")
+        self.assertAlmostEqual(r_det.lat or 0.0, -6.3341, places=4)
+        self.assertEqual(r_det.nama_pemilik, "Pak Agus")
+        self.assertEqual(r_det.wa_link, "https://wa.me/6281282601234")
+
+        # KostJakarta: labeled metadata + WA link
+        kj = KostJakartaAdapter()
+        kj_det_html = """
+        <html><body>
+          <h1>Kost Tebet Barat Nyaman</h1>
+          <article class="entry-content">
+            Nama Rumah Kost: Kost Tebet 88
+            Alamat Kost: Jl. Tebet Barat Dalam No. 8, Kec. Tebet, Jakarta Selatan
+            WhatsApp: 087774509000 (Tata)
+            Harga Sewa: Rp 1.300.000 /bulan
+            Tempat Kost Untuk: Pria / wanita / pasutri
+            Sekamar Boleh Berdua: Boleh
+            Fasilitas: AC, WiFi, Kamar mandi dalam
+            Parkir: Motor
+            <a href="https://api.whatsapp.com/send?phone=6287774509000">Chat</a>
+            <img src="https://kostjakarta.com/iklan/images/2026/11/1.jpg"/>
+          </article>
+        </body></html>
+        """
+        kj_det = kj.parse_detail("https://www.kostjakarta.com/999/kost-tebet/", html=kj_det_html)
+        self.assertEqual(kj_det.nama_kost, "Kost Tebet 88")
+        self.assertEqual(kj_det.price, 1300000)
+        self.assertEqual(kj_det.jenis, "Kost Campur")
+        self.assertEqual(kj_det.kecamatan, "Tebet")
+        self.assertEqual(kj_det.wa_link, "https://wa.me/6287774509000")
+        self.assertIn("Sekamar Berdua: Boleh", kj_det.peraturan)
+
 
 class TestFairnessAndFraudDetector(unittest.TestCase):
     def test_interleave_prevents_source_starvation(self) -> None:

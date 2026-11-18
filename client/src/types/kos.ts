@@ -1,4 +1,12 @@
-export type SourceId = "sewakost" | "rukita" | "mamikos" | "infokost" | "cove";
+export type SourceId =
+  | "sewakost"
+  | "rukita"
+  | "mamikos"
+  | "infokost"
+  | "cove"
+  | "djuragankamar"
+  | "rumah123"
+  | "kostjakarta";
 
 export interface ScamRisk {
   level: "high" | "medium" | "low";

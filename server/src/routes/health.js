@@ -19,7 +19,16 @@ export function createHealthRouter({ config }) {
       pythonVersion: pyVersion || null,
       lxmlReady: lxmlReady === "True",
       hasGoogleMapsApiKey: Boolean(process.env.GOOGLE_MAPS_API_KEY),
-      adapters: ["sewakost", "rukita", "mamikos", "infokost", "cove"],
+      adapters: [
+        "sewakost",
+        "rukita",
+        "mamikos",
+        "infokost",
+        "cove",
+        "djuragankamar",
+        "rumah123",
+        "kostjakarta",
+      ],
     });
   });
 
@@ -31,11 +40,15 @@ export function createHealthRouter({ config }) {
       adapters: [
         { id: "sewakost", label: "Sewakost.com", supportsPriceFilter: true, supportsGeo: false },
         { id: "rukita", label: "Rukita.co", supportsPriceFilter: false, supportsGeo: true },
-        { id: "mamikos", label: "Mamikos.com", supportsPriceFilter: false, supportsGeo: false },
+        { id: "mamikos", label: "Mamikos.com", supportsPriceFilter: true, supportsGeo: true },
         { id: "infokost", label: "Infokost.id", supportsPriceFilter: false, supportsGeo: true },
-        { id: "cove", label: "Cove.id", supportsPriceFilter: false, supportsGeo: false },
+        { id: "cove", label: "Cove.id", supportsPriceFilter: false, supportsGeo: true },
+        { id: "djuragankamar", label: "DjuraganKamar.com", supportsPriceFilter: false, supportsGeo: true },
+        { id: "rumah123", label: "Rumah123.com", supportsPriceFilter: true, supportsGeo: true },
+        { id: "kostjakarta", label: "KostJakarta.com", supportsPriceFilter: false, supportsGeo: false },
       ],
-      blockedNote: "99.co/id diblokir verifikasi bot Cloudflare (HTTP 403) dan tidak di-bypass.",
+      blockedNote:
+        "99.co (Cloudflare 403), Trovit (HTTP 401), Papikost (HTTP 403/kosong), IdKos (timeout/404) & JajanKost (Jogja/Jatim saja, /search 500) tidak di-bypass.",
     });
   });
 
