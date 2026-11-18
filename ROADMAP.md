@@ -7,6 +7,8 @@
 - [x] **Geocoding + jarak** — Haversine distance + cached OSM Nominatim (`scraper/geo.py`, 1.1 req/s).
 - [x] **Cross-platform workflow & Bento Grid Web Studio** — Pengganti `kos_hunt.sh` bash-only (`scraper/runner.py`), Node/Express SSE queue (`server/`), dan React/Vite Bento Grid UI (`client/`).
 - [x] **Multi-thread concurrency & Progressive Disclosure UI** — Paralelisme list & detail worker (`ThreadPoolExecutor`), **Filter Lanjutan Modal**, deteksi atribut kos Indonesia, jarak transum terdekat (`HALTE BUSWAY | MRT | KRL | LRT | MALL`), fasilitas Kamar vs Gedung ber-ikon, & galeri multi-foto.
+- [x] **8 Website Adapters + Landmark Bank Mega & Price Hygiene** — Penambahan `DjuraganKamar`, `Rumah123`, `KostJakarta`, filter nominal sewa bulanan murni (kecuali deposit/addon), dan default acuan Menara Bank Mega Tendean.
+- [x] **Riset Direktori Sheet/Doc Terpisah, Katalog Privat Server, CRUD File & Pagination 20/Hal** — Pemisahan mode `Riset Sheet & Doc` (`/api/resources/*`, `hasil/resources/`), katalog URL privat server-side (`hasil/resource_catalog.json`), filter kategori sheet di Pengaturan, mode simpan `replace`/`merge`/`archive`, hapus file riwayat, batas custom `1–300`, dan pagination 20 item per halaman.
 - [ ] **99.co adapter** — Terblokir verifikasi bot Cloudflare (`HTTP 403`); tidak di-bypass.
 - [ ] **Google Sheets export** — Push hasil ke spreadsheet via OAuth (`credentials.json` terisolasi `.env`).
 - [ ] **Monitoring harian (cron / launchd / Task Scheduler)** — Diff hasil run harian & kirim notifikasi kos baru.

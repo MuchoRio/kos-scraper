@@ -4,16 +4,13 @@ Multi-source boarding house (kos) scraper & **Bento Grid Web Studio** — lintas
 
 ## Arsitektur
 
-- `scraper/` — Python 3 engine (`lxml` scoped DOM parsing, multi-thread list & detail concurrency `--concurrency`, retry + exponential backoff/jitter, round-robin fairness antar sumber, semantic attribute classifier `Texas/Non-Texas, Pet, Pasutri, KM, Dapur, Harga Tier`, `shared/transum_hubs.json` transit proximity, cached OSM Nominatim geocoding + Haversine distance, galeri multi-foto `image_urls`, Google Maps rating/evaluasi sentimen/clue harga, **Scam & Red-Flag Detector**, safe `utf-8-sig` CSV writer dengan anti formula-injection).
-  - `sewakost.com` adapter (`df_field_*` DOM parser + anti-sidebar price bleed guard + listing card price cross-check + multi-foto galeri).
-  - `rukita.co` adapter (SSR card parser + Schema.org `LodgingBusiness` JSON-LD `geo`, `priceRange`, & galeri).
-  - `mamikos.com` adapter (SSR `/kost/kost-<area>-murah` cards lengkap dengan tipe, fasilitas, & harga).
-  - `infokost.id` adapter (SSR `/kost/<area>` & `/listings/*` DOM parser + koordinat + galeri kamar).
-  - `cove.id` adapter (Next.js `__NEXT_DATA__` JSON parser + galeri media).
-  - *Catatan `99.co/id`*: Diblokir verifikasi bot Cloudflare (`HTTP 403`) dan tidak di-bypass.
-  - `gmaps.py`, `gmaps_analyzer.py`, & `fraud_detector.py` — Integrasi Google Places API (New) via `GOOGLE_MAPS_API_KEY` (atau `chrome_browser` fallback untuk rating/link Maps), ekstraksi estimasi harga dari komentar penghuni, dan deteksi sinyal penipuan dua lapis.
-- `server/` — Node.js + Express 5 local API (`127.0.0.1:3001`), validasi `concurrency` `1–8`, job queue concurrency cap `1`, cancellation nyata, dan live SSE progress stream.
-- `client/` — React 19 + TypeScript + Vite + Tailwind CSS v4 **Bento Grid UI** (Light & Dark mode, bar filter utama ringkas + **Filter Lanjutan Modal** ala Progressive Disclosure, removable active chips, **Fasilitas Kamar vs Gedung** ber-ikon, tab **Di Sekitar Kost** untuk Halte Busway/MRT/KRL/LRT/Mall terdekat, kartu foto `16:10` full-bleed + galeri multi-foto di Detail Drawer, Favorit, History `hasil/`, Export CSV).
+- `scraper/` — Python 3 engine (`lxml` scoped DOM parsing, multi-thread list & detail concurrency `--concurrency`, retry + exponential backoff/jitter, round-robin fairness antar sumber, semantic attribute classifier `Texas/Non-Texas, Pet Friendly + Tidak Pet guard, Pasutri, KM, Dapur, Harga Tier`, `shared/transum_hubs.json` transit proximity, `shared/landmarks.json` acuan Menara Bank Mega, cached OSM Nominatim geocoding + Haversine distance, galeri multi-foto `image_urls`, Google Maps pin exact `!3d!4d` / sentimen / clue harga, **Scam & Red-Flag Detector**, CRUD upsert `exporters.py`, safe `utf-8-sig` CSV writer).
+  - **8 Website Adapters**: `sewakost.com`, `rukita.co`, `mamikos.com`, `infokost.id`, `cove.id`, `djuragankamar.com`, `rumah123.com`, `kostjakarta.com`.
+  - **Riset Direktori Terpisah (`resource_doc.py`, `resource_parser.py`, `resource_runner.py`)**: Analisis sheet & dokumen publik (`inspect-resource` / `analyze-resource`) secara terisolasi ke `hasil/resources/`, lengkap dengan pra-filter Kategori Harga / Ketersediaan / Kualitas / Gender / Pet, deduplikasi, resolusi `maps.app.goo.gl` & `place_id:ChIJ...`, serta `--mask-source-url`.
+  - *Catatan situs diblokir anti-bot*: `99.co/id` (Cloudflare 403), `trovit` (401), `papikost` (403), dan `idkos` (timeout/404) tidak di-bypass.
+  - `gmaps.py`, `gmaps_analyzer.py`, & `fraud_detector.py` — Integrasi Google Places API (New) via `GOOGLE_MAPS_API_KEY` (atau `chrome_browser` fallback untuk pin exact, rating, & link Maps), ekstraksi estimasi harga dari komentar penghuni, dan deteksi sinyal penipuan dua lapis.
+- `server/` — Node.js + Express 5 local API (`127.0.0.1:3001`), katalog sumber privat server-side (`resourceCatalog.js` membaca `hasil/resource_catalog.json` / `RESOURCE_CATALOG_JSON` tanpa membocorkan URL ke klien), validasi target `1–300`, CRUD hapus file riwayat (`DELETE`), job queue concurrency cap `1`, cancellation nyata, dan live SSE progress stream.
+- `client/` — React 19 + TypeScript + Vite + Tailwind CSS v4 **Bento Grid UI** (mode terpisah **`Scraper Web`** | **`Riset Sheet & Doc`**, custom target `1–300`, **Pagination `20` item/halaman**, **Filter Lanjutan & Pengaturan Modal** ber-tab, **Mode Simpan CRUD File** `replace` / `merge` / `archive`, **Database Server vs Custom URL** tanpa badge file di header, **Fasilitas Kamar vs Gedung** ber-ikon, tab **Di Sekitar Kost** transum, galeri multi-foto, Favorit, Riwayat `hasil/`, Export CSV).
 
 ## Prasyarat
 
@@ -55,7 +52,9 @@ python3 kos_scraper.py detail <url1> [url2 ...]
 
 - `GET /api/health` & `GET /api/presets`
 - `POST /api/jobs` / `GET /api/jobs/:id` / `POST /api/jobs/:id/cancel` / `GET /api/jobs/:id/events` (SSE)
-- `GET /api/results` & `GET /api/results/:filename`
+- `GET /api/results`, `GET /api/results/:filename`, & `DELETE /api/results/:filename`
+- `GET/POST /api/resources/presets` & `DELETE /api/resources/presets/:id`
+- `POST /api/resources/inspect`, `POST /api/resources/jobs`, `GET /api/resources/results`, & `DELETE /api/resources/results/:filename`
 - `GET /api/favorites` & `POST /api/favorites/toggle`
 - `POST /api/export/csv`
 
