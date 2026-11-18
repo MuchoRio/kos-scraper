@@ -14,6 +14,7 @@ import type { KosItem } from "../types/kos";
 import { extractBadgeFacilities, formatIdr, maskPhoneDisplay } from "../utils/formatters";
 import { getAttributeChips } from "../utils/kosAttributes";
 import { formatNearestTransitLabel } from "../utils/transitFinder";
+import { NoPhotoPlaceholder } from "./NoPhotoPlaceholder";
 
 interface ListingBentoCardProps {
   item: KosItem;
@@ -54,7 +55,7 @@ export function ListingBentoCard({
         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap shrink-0 ${
           overlay
             ? "bg-black/65 text-white backdrop-blur-xs"
-            : "bg-[var(--accent-soft)] text-[var(--accent-text)]"
+            : "border border-[var(--border-subtle)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
         }`}
       >
         {item.source}
@@ -64,7 +65,7 @@ export function ListingBentoCard({
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap shrink-0 ${
             overlay
               ? "bg-black/55 text-white backdrop-blur-xs"
-              : "bg-[var(--bg-subtle)] text-[var(--text-muted)]"
+              : "border border-[var(--border-subtle)] bg-[var(--bg-card)]/90 text-[var(--text-muted)]"
           }`}
         >
           {item.jenis}
@@ -93,16 +94,16 @@ export function ListingBentoCard({
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-sm transition-all hover:border-[var(--accent)]">
-      {hasPhoto ? (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => onSelect(item)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") onSelect(item);
-          }}
-          className="relative aspect-[16/10] w-full overflow-hidden bg-[var(--bg-subtle)] cursor-pointer"
-        >
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onSelect(item)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onSelect(item);
+        }}
+        className="relative aspect-[16/10] w-full overflow-hidden border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)] cursor-pointer"
+      >
+        {hasPhoto ? (
           <img
             src={heroPhoto!}
             alt={item.title || "Foto kos"}
@@ -110,46 +111,36 @@ export function ListingBentoCard({
             onError={() => setImgFailed(true)}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
-          <div className="absolute left-3 top-3 right-12">{badgePills(true)}</div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(item);
-            }}
-            aria-label={isSaved ? "Hapus dari favorit" : "Simpan ke favorit"}
-            className={`absolute right-3 top-3 rounded-full p-2 backdrop-blur-xs transition-colors cursor-pointer ${
-              isSaved
-                ? "bg-[var(--accent)] text-white"
-                : "bg-black/55 text-white hover:bg-black/75"
-            }`}
-          >
-            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-          </button>
-          {photoCount > 1 && (
-            <span className="absolute bottom-2.5 right-3 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-xs">
-              <Images className="h-3 w-3" />
-              <span>{photoCount} foto</span>
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-start justify-between gap-2 px-4 pt-4">
-          {badgePills(false)}
-          <button
-            type="button"
-            onClick={() => onToggleFavorite(item)}
-            aria-label={isSaved ? "Hapus dari favorit" : "Simpan ke favorit"}
-            className={`rounded-lg p-1.5 transition-colors cursor-pointer shrink-0 ${
-              isSaved
-                ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                : "text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]"
-            }`}
-          >
-            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-          </button>
-        </div>
-      )}
+        ) : (
+          <NoPhotoPlaceholder />
+        )}
+
+        <div className="absolute left-3 top-3 right-12">{badgePills(hasPhoto)}</div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(item);
+          }}
+          aria-label={isSaved ? "Hapus dari favorit" : "Simpan ke favorit"}
+          className={`absolute right-3 top-3 rounded-full p-2 backdrop-blur-xs transition-colors cursor-pointer ${
+            isSaved
+              ? "bg-[var(--accent)] text-white"
+              : hasPhoto
+                ? "bg-black/55 text-white hover:bg-black/75"
+                : "border border-[var(--border-subtle)] bg-[var(--bg-card)]/90 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
+        </button>
+
+        {hasPhoto && photoCount > 1 && (
+          <span className="absolute bottom-2.5 right-3 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-xs">
+            <Images className="h-3 w-3" />
+            <span>{photoCount} foto</span>
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-1 flex-col justify-between p-4 space-y-3">
         <div className="space-y-2.5">

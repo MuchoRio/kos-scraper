@@ -1,6 +1,7 @@
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { KosItem } from "../types/kos";
+import { NoPhotoPlaceholder } from "./NoPhotoPlaceholder";
 
 export function DetailGallery({ item }: { item: KosItem }) {
   const photos = useMemo(() => {
@@ -28,9 +29,8 @@ export function DetailGallery({ item }: { item: KosItem }) {
 
   if (validPhotos.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-subtle)]/40 text-xs text-[var(--text-muted)]">
-        <ImageOff className="h-4 w-4 opacity-60" />
-        <span>Foto galeri belum tersedia dari sumber iklan.</span>
+      <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+        <NoPhotoPlaceholder subtitle="Cek halaman iklan untuk melihat apakah foto sudah diunggah pemilik" />
       </div>
     );
   }
