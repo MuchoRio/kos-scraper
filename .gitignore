@@ -4,8 +4,10 @@ __pycache__/
 scraper/.cache/
 hasil/*.json
 hasil/*.csv
+hasil/resources/*.json
+hasil/resources/*.csv
 !hasil/.gitkeep
-!hasil/contoh_*
+!hasil/resources/.gitkeep
 node_modules/
 client/dist/
 *.tsbuildinfo
