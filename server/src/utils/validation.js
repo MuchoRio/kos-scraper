@@ -60,7 +60,7 @@ export function validateJobPayload(body) {
   }
 
   const maxPages = Math.min(20, Math.max(1, Number.parseInt(body.maxPages ?? 5, 10) || 5));
-  const detailsLimit = Math.min(60, Math.max(1, Number.parseInt(body.detailsLimit ?? 20, 10) || 20));
+  const detailsLimit = Math.min(300, Math.max(1, Number.parseInt(body.detailsLimit ?? 20, 10) || 20));
   const concurrency = Math.min(8, Math.max(1, Number.parseInt(body.concurrency ?? 4, 10) || 4));
   const sort = body.sort === "price" ? "price" : body.sort === "newest" ? "date" : "default";
   const order = body.order === "asc" ? "asc" : "desc";

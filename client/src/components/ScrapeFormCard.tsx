@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { SOURCE_OPTIONS } from "../constants/sources";
 import type { JobOptions, LandmarkRef, PresetArea } from "../types/kos";
 import type { ScrapeSettingsState } from "./ScrapeSettingsModal";
+import { TargetLimitField } from "./TargetLimitField";
 
 interface ScrapeFormCardProps {
   areas: PresetArea[];
@@ -32,7 +33,7 @@ export function ScrapeFormCard({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const limit = Math.min(60, Math.max(1, Number(targetKos) || 20));
+    const limit = Math.min(300, Math.max(1, Number(targetKos) || 20));
     const pages = Math.min(15, Math.max(1, Number(settings.maxPages) || 6));
     onStartJob({
       sources: settings.sources,
@@ -80,8 +81,8 @@ export function ScrapeFormCard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <label className="space-y-1">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+        <label className="space-y-1 lg:col-span-2">
           <span className="block text-xs font-medium text-[var(--text-muted)]">Area</span>
           <select
             value={area}
@@ -98,7 +99,7 @@ export function ScrapeFormCard({
           </select>
         </label>
 
-        <label className="space-y-1">
+        <label className="space-y-1 lg:col-span-2">
           <span className="block text-xs font-medium text-[var(--text-muted)]">
             Budget Maks (Rp)
           </span>
@@ -113,7 +114,7 @@ export function ScrapeFormCard({
           />
         </label>
 
-        <label className="space-y-1 sm:col-span-2">
+        <label className="space-y-1 sm:col-span-2 lg:col-span-3">
           <span className="block text-xs font-medium text-[var(--text-muted)]">
             Keyword Lokasi (pisah koma)
           </span>
@@ -126,29 +127,15 @@ export function ScrapeFormCard({
           />
         </label>
 
-        <div className="space-y-1">
-          <span className="block text-xs font-medium text-[var(--text-muted)]">
-            Target Jumlah Kos
-          </span>
-          <div className="flex items-center gap-1.5">
-            {["10", "20", "40"].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setTargetKos(preset)}
-                className={`flex-1 rounded-xl border py-2 text-xs font-semibold font-mono-tabular cursor-pointer whitespace-nowrap ${
-                  targetKos === preset
-                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[var(--text-muted)]"
-                }`}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TargetLimitField
+          label="Target Jumlah Kos"
+          value={targetKos}
+          max={300}
+          className="lg:col-span-3"
+          onChange={setTargetKos}
+        />
 
-        <div className="flex flex-col justify-end">
+        <div className="flex flex-col justify-end lg:col-span-2">
           <button
             type="submit"
             disabled={isRunning}

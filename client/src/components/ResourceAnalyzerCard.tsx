@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import type { LandmarkRef, PresetArea, ResourceInspectPayload, ResourceInspectStats, ResourceJobOptions } from "../types/kos";
 import { formatIdr } from "../utils/formatters";
 import type { ScrapeSettingsState } from "./ScrapeSettingsModal";
+import { TargetLimitField } from "./TargetLimitField";
 
 const COMMUNITY_PRESETS = [
   {
@@ -76,7 +77,7 @@ export function ResourceAnalyzerCard({
       area,
       maxPrice: maxPrice ? Number(maxPrice) : null,
       keywords: parsedKws,
-      detailsLimit: Math.min(60, Math.max(1, Number(targetCount) || 20)),
+      detailsLimit: Math.min(300, Math.max(1, Number(targetCount) || 20)),
       concurrency: Math.min(6, Math.max(1, Number(settings.concurrency) || 4)),
       onlyAvailable: settings.resourceAvailability !== "all",
       deduplicate: settings.resourceDeduplicate,
@@ -147,8 +148,8 @@ export function ResourceAnalyzerCard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <label className="space-y-1">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+        <label className="space-y-1 lg:col-span-2">
           <span className="block text-xs font-medium text-[var(--text-muted)]">Area Target</span>
           <select
             value={area}
@@ -164,7 +165,7 @@ export function ResourceAnalyzerCard({
           </select>
         </label>
 
-        <label className="space-y-1">
+        <label className="space-y-1 lg:col-span-2">
           <span className="block text-xs font-medium text-[var(--text-muted)]">Budget Maks (Rp)</span>
           <input
             type="number"
@@ -177,7 +178,7 @@ export function ResourceAnalyzerCard({
           />
         </label>
 
-        <label className="space-y-1 sm:col-span-2">
+        <label className="space-y-1 sm:col-span-2 lg:col-span-3">
           <span className="block text-xs font-medium text-[var(--text-muted)]">Filter Kecamatan / Kata Kunci</span>
           <input
             type="text"
@@ -188,27 +189,15 @@ export function ResourceAnalyzerCard({
           />
         </label>
 
-        <div className="space-y-1">
-          <span className="block text-xs font-medium text-[var(--text-muted)]">Batas Enrich</span>
-          <div className="flex items-center gap-1.5">
-            {["10", "20", "40"].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setTargetCount(preset)}
-                className={`flex-1 rounded-xl border py-2 text-xs font-semibold font-mono-tabular cursor-pointer ${
-                  targetCount === preset
-                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[var(--text-muted)]"
-                }`}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TargetLimitField
+          label="Batas Enrich"
+          value={targetCount}
+          max={300}
+          className="lg:col-span-3"
+          onChange={setTargetCount}
+        />
 
-        <div className="flex flex-col justify-end">
+        <div className="flex flex-col justify-end lg:col-span-2">
           <button
             type="submit"
             disabled={isRunning}

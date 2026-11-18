@@ -129,6 +129,7 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
       quality: "worth_it",
       gender: "campur",
       pet: "pet_friendly",
+      detailsLimit: 120,
       keepHistory: false,
       storageMode: "merge",
     }),
@@ -138,6 +139,7 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
   assert.equal(resJob.options.priceCategory, "murah");
   assert.equal(resJob.options.availability, "strict_available");
   assert.equal(resJob.options.storageMode, "merge");
+  assert.equal(resJob.options.detailsLimit, 120);
 
   // File CRUD delete endpoints validate & delete safely
   fs.writeFileSync(path.join(tmp, "old_test.json"), "[]", "utf8");

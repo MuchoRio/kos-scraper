@@ -45,7 +45,7 @@ function validateResourcePayload(body) {
   }
   const rawKws = Array.isArray(body.keywords) ? body.keywords : String(body.keywords || "").split(",");
   const keywords = rawKws.map((k) => String(k).replace(/[^\p{L}\p{N}\s.-]/gu, "").trim()).filter(Boolean).slice(0, 20);
-  const detailsLimit = Math.min(60, Math.max(1, Number.parseInt(body.detailsLimit ?? 20, 10) || 20));
+  const detailsLimit = Math.min(300, Math.max(1, Number.parseInt(body.detailsLimit ?? 20, 10) || 20));
   const concurrency = Math.min(6, Math.max(1, Number.parseInt(body.concurrency ?? 4, 10) || 4));
   let refLat = null;
   let refLon = null;
