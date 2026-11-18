@@ -12,6 +12,7 @@ from ..models import (
     KosListing,
     dedup_image_urls,
     extract_all_prices,
+    extract_room_rent_prices,
     format_idr,
     normalize_wa_link,
     parse_price,
@@ -172,7 +173,7 @@ class SewakostAdapter(SourceAdapter):
         raw_price_text = _field_first(doc, "df_field_price")
         raw_price_val = parse_price(raw_price_text)
         desc_text = _field_first(doc, "df_field_additional_information")
-        scoped_prices = extract_all_prices(_node_text(scoped_root), min_monthly=100_000)
+        scoped_prices = extract_room_rent_prices(_node_text(scoped_root), min_monthly=100_000)
 
         resolved_price, price_suspect, price_source = self._resolve_price(
             raw_price_val, hint.get("listing_price"), scoped_prices, desc_text
@@ -241,7 +242,7 @@ class SewakostAdapter(SourceAdapter):
             return raw_price, False, "df_field_price"
         if card_price is not None and 100_000 <= card_price <= 100_000_000:
             return card_price, False, "listing_card"
-        desc_prices = extract_all_prices(desc_text, min_monthly=100_000)
+        desc_prices = extract_room_rent_prices(desc_text, min_monthly=100_000)
         if desc_prices:
             return min(desc_prices), False, "description"
         if scoped_prices:

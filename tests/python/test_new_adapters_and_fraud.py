@@ -354,6 +354,52 @@ class TestNewAdapters(unittest.TestCase):
         self.assertEqual(kj_det.wa_link, "https://wa.me/6287774509000")
         self.assertIn("Sekamar Berdua: Boleh", kj_det.peraturan)
 
+        # Regression: ignore Deposit / Berdua / Extra Person / Mingguan / Parkir fees when extracting rent
+        beranda_html = """
+        <html><body>
+          <h1>Tempat Kost Campur Exclusive Bangka Tendean</h1>
+          <article class="entry-content">
+            Nama Rumah Kost: Beranda Tendean
+            Alamat Kost: Jl. Bangka II Blok B No.32A, Mampang Prpt., Jakarta Selatan
+            Harga Sewa:
+            Standard Rp 2.850.000 / bulan
+            Deluxe Rp 3.150.000 / bulan
+            Berdua Rp 250.000 / bulan
+            Deposit Rp 500.0000
+            Tamu menginap Rp 50.000 / orang / malam
+            Biaya Tambahan Sekamar Berdua: Rp 250.000 / bulan
+            Parkir Mobil: Ya, berbayar Rp 250.000 / bulan
+          </article>
+        </body></html>
+        """
+        beranda = kj.parse_detail("https://www.kostjakarta.com/14504/beranda-tendean/", html=beranda_html)
+        self.assertEqual(beranda.price, 2850000)
+        self.assertEqual(beranda.price_options, [2850000, 3150000])
+
+        abdi_html = """
+        <html><body>
+          <h1>Abdi Tendean Residence</h1>
+          <article class="entry-content">
+            Harga Sewa:
+            Tipe A Single KM Luar Jendela Rp. 1.700.000
+            Tipe B Single KM Dalam Jendela Rp. 2.180.000
+            + Extra Person Rp. 300.000 (Tipe C &amp; D)
+            Deposit Rp. 500.000
+            Sewa Mingguan Single 850 ribu, deposit 300 ribu
+            Parkir Mobil: Tidak Ada
+          </article>
+        </body></html>
+        """
+        abdi = kj.parse_detail("https://www.kostjakarta.com/14704/abdi-tendean/", html=abdi_html)
+        self.assertEqual(abdi.price, 1700000)
+        self.assertEqual(abdi.price_options, [1700000, 2180000])
+
+        from scraper.models import extract_room_rent_prices
+        self.assertEqual(
+            extract_room_rent_prices("Harga Sewa: Rp.2.800.000-Rp.3.300.000 per Bulan (non Listrik)"),
+            [2800000, 3300000],
+        )
+
 
 class TestFairnessAndFraudDetector(unittest.TestCase):
     def test_interleave_prevents_source_starvation(self) -> None:

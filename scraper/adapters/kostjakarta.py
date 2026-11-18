@@ -8,7 +8,7 @@ from typing import Any
 
 import lxml.html
 
-from ..models import KosListing, dedup_image_urls, extract_all_prices, format_idr, normalize_wa_link
+from ..models import KosListing, dedup_image_urls, extract_room_rent_prices, format_idr, normalize_wa_link
 from .base import SourceAdapter
 
 _AREA_CATEGORIES = {
@@ -89,7 +89,7 @@ class KostJakartaAdapter(SourceAdapter):
             titles = [_clean(t) for t in art.xpath(".//h2//text() | .//h3//text()")]
             title = next((t for t in titles if len(t) >= 4), slug.replace("-", " ").title())
             txt = _clean(art.text_content())
-            prices = extract_all_prices(txt, min_monthly=100_000)
+            prices = extract_room_rent_prices(txt, min_monthly=300_000)
             price = min(prices) if prices else None
             if max_price and price and price > max_price:
                 continue
@@ -137,7 +137,15 @@ class KostJakartaAdapter(SourceAdapter):
         alamat = _extract_labeled_field(blob, "Alamat Kost", labels)
         nama_kost = _extract_labeled_field(blob, "Nama Rumah Kost", labels) or title
         harga_raw = _extract_labeled_field(blob, "Harga Sewa", labels) or ""
-        prices = extract_all_prices(harga_raw, min_monthly=100_000) or extract_all_prices(blob, min_monthly=100_000)
+        # Use raw_lines inside Harga Sewa block (preserving line boundaries) so fees/deposits drop cleanly
+        harga_block = "\n".join(
+            ln
+            for ln in blob.splitlines()
+            if "harga" in ln.lower() or "rp" in ln.lower() or "rb" in ln.lower() or "ribu" in ln.lower() or "juta" in ln.lower()
+        )
+        prices = extract_room_rent_prices(harga_raw, min_monthly=300_000) or extract_room_rent_prices(
+            harga_block, min_monthly=300_000
+        )
         price = min(prices) if prices else hint.get("listing_price")
 
         kec = None

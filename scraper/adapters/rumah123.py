@@ -9,7 +9,7 @@ from typing import Any
 
 import lxml.html
 
-from ..models import KosListing, dedup_image_urls, extract_all_prices, format_idr, normalize_wa_link, parse_price
+from ..models import KosListing, dedup_image_urls, extract_room_rent_prices, format_idr, normalize_wa_link, parse_price
 from .base import SourceAdapter
 
 _AREA_PATHS = {
@@ -109,7 +109,7 @@ class Rumah123Adapter(SourceAdapter):
                     break
 
             card_txt = _clean(" ".join(container.xpath(".//text()[not(ancestor::script)]")))
-            prices = extract_all_prices(card_txt, min_monthly=100_000)
+            prices = extract_room_rent_prices(card_txt, min_monthly=100_000)
             price = min(prices) if prices else None
             if max_price and price and price > max_price:
                 continue

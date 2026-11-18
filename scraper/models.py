@@ -106,6 +106,22 @@ def parse_price(raw: str | None) -> int | None:
     return val if (val is not None and val <= 100_000_000) else None
 
 
+_NON_RENT_BEFORE_RE = re.compile(
+    r"\b(?:deposit|jaminan|uang\s+muka|booking\s+fee|berdua|extra\s+person|tambahan|tamu|menginap|"
+    r"parkir|biaya\s+(?:listrik|air|admin|service|kebersihan)|token|ipl|denda|laundry|"
+    r"(?:sewa\s+)?(?:harian|mingguan|tahunan)|per\s*(?:hari|minggu|malam|tahun)|daily|weekly|yearly)\b",
+    re.I,
+)
+_NON_RENT_AFTER_RE = re.compile(
+    r"^\s*(?:/|\bper\b)?\s*(?:hari|hr|malam|minggu|mgg|tahun|thn|orang|pax|day|night|week|year)\b",
+    re.I,
+)
+_PRICE_TOKEN_RE = re.compile(
+    r"rp\.?\s*[\d.,]+(?:\s*(?:jt|juta|rb|ribu))?|\b\d+(?:[.,]\d+)?\s*(?:jt|juta|rb|ribu)\b",
+    re.I,
+)
+
+
 def extract_all_prices(text: str | None, min_monthly: int = 100_000) -> list[int]:
     """Return sorted unique plausible monthly prices found inside a text block."""
     if not text:
@@ -116,6 +132,30 @@ def extract_all_prices(text: str | None, min_monthly: int = 100_000) -> list[int
         text,
         re.I,
     ):
+        val = parse_price(match.group(0))
+        if val is not None and min_monthly <= val <= 100_000_000:
+            found.add(val)
+    return sorted(found)
+
+
+def extract_room_rent_prices(text: str | None, min_monthly: int = 100_000) -> list[int]:
+    """Extract plausible monthly room-rent prices, excluding deposits, addons, and daily/weekly rates."""
+    if not text:
+        return []
+    found: set[int] = set()
+    prev_end = 0
+    for match in _PRICE_TOKEN_RE.finditer(text):
+        seg_before = text[max(prev_end, match.start() - 55) : match.start()]
+        # Trim at the latest line/bullet boundary so previous sentence keywords don't bleed in
+        for sep in ("\n", "•", ";", "|", ". "):
+            pos = seg_before.rfind(sep)
+            if pos != -1:
+                seg_before = seg_before[pos + len(sep) :]
+        seg_after = text[match.end() : match.end() + 26].split("\n", 1)[0]
+        prev_end = match.end()
+
+        if _NON_RENT_BEFORE_RE.search(seg_before) or _NON_RENT_AFTER_RE.search(seg_after):
+            continue
         val = parse_price(match.group(0))
         if val is not None and min_monthly <= val <= 100_000_000:
             found.add(val)

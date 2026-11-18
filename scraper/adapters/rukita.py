@@ -9,7 +9,7 @@ from typing import Any
 
 import lxml.html
 
-from ..models import KosListing, dedup_image_urls, extract_all_prices, format_idr, parse_price
+from ..models import KosListing, dedup_image_urls, extract_all_prices, extract_room_rent_prices, format_idr, parse_price
 from .base import SourceAdapter
 
 _PLACE_RE = re.compile(r"^/place/([a-z0-9-]+)")
@@ -75,7 +75,7 @@ class RukitaAdapter(SourceAdapter):
             if not texts:
                 continue
             blob = " | ".join(texts)
-            prices = extract_all_prices(blob, min_monthly=100_000)
+            prices = extract_room_rent_prices(blob, min_monthly=100_000)
             min_p = min(prices) if prices else None
             if max_price and min_p and min_p > max_price:
                 continue
