@@ -51,6 +51,7 @@ class KosListing:
     peraturan: list[str] = field(default_factory=list)
     image_url: str | None = None
     image_urls: list[str] = field(default_factory=list)
+    image_source: str | None = None
     lat: float | None = None
     lon: float | None = None
     distance_km: float | None = None
@@ -206,6 +207,7 @@ def dedup_image_urls(urls: Iterable[Any], limit: int = 12) -> list[str]:
         if not clean or not clean.startswith(("http://", "https://")) or clean in seen:
             continue
         if re.search(
+            r"streetviewpixels-pa\.googleapis\.com|googleusercontent\.com/a/|/AAAAAAAAAAI/|default_geocode|"
             r"(?:\.svg|\.html|/favicon|Ic_Verified|2b5f0791-94da-45df-98a0-2362a3bf96a9)(?:$|[/?#])",
             clean,
             re.I,

@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
-from scraper.gmaps import GoogleMapsEnricher, build_gmaps_query
+from scraper.gmaps import GoogleMapsEnricher, build_gmaps_query, resolve_places_photo_uri
 from scraper.gmaps_analyzer import analyze_reviews, classify_review, extract_review_price_clues
 
 
@@ -108,6 +109,65 @@ class TestGmapsEnricher(unittest.TestCase):
         q = build_gmaps_query({"title": "Kost Mawar", "kecamatan": "Cilandak"})
         self.assertIn("Kost Mawar", q)
         self.assertIn("Jakarta", q)
+
+    def test_enrich_populates_gmaps_photos_and_preserves_listing_primary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_path = Path(tmp) / "gmaps.json"
+            browser_payload = {
+                "status": "ok",
+                "engine": "chrome_browser",
+                "place_name": "KOST NINGSIH",
+                "rating": 5.0,
+                "review_count": 3,
+                "limited_view": True,
+                "maps_url": "https://www.google.com/maps/place/KOST+NINGSIH/@-6.24,106.82,17z",
+                "lat": -6.2416,
+                "lon": 106.8248,
+                "photos": [
+                    "https://lh3.googleusercontent.com/grass-cs/AABkmTestPhoto1234567890=w960-h720-k-no",
+                    "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=abc",
+                    "https://lh3.googleusercontent.com/a/avatar123=s32",
+                ],
+                "reviews": [],
+            }
+            enricher = GoogleMapsEnricher(cache_path=cache_path, min_delay=0)
+            with patch("scraper.gmaps.fetch_browser_gmaps", return_value=browser_payload):
+                no_photo_rec = {"title": "Kost Ningsih", "kecamatan": "Mampang Prapatan"}
+                enricher.enrich_item(no_photo_rec)
+                self.assertEqual(no_photo_rec["image_source"], "google_maps")
+                self.assertEqual(
+                    no_photo_rec["image_urls"],
+                    ["https://lh3.googleusercontent.com/grass-cs/AABkmTestPhoto1234567890=w960-h720-k-no"],
+                )
+                self.assertEqual(no_photo_rec["image_url"], no_photo_rec["image_urls"][0])
+
+                with_photo_rec = {
+                    "title": "Kost Ningsih",
+                    "kecamatan": "Mampang Prapatan",
+                    "image_url": "https://cdn.example.com/kamar.jpg",
+                    "image_urls": ["https://cdn.example.com/kamar.jpg"],
+                }
+                enricher.enrich_item(with_photo_rec)
+                self.assertEqual(with_photo_rec["image_source"], "listing")
+                self.assertEqual(with_photo_rec["image_url"], "https://cdn.example.com/kamar.jpg")
+                self.assertEqual(len(with_photo_rec["image_urls"]), 2)
+
+    def test_resolve_places_photo_uri_rejects_leaked_key(self) -> None:
+        class _FakeResp(BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        clean_body = json.dumps({"photoUri": "https://lh3.googleusercontent.com/places/CLEAN=w960"}).encode()
+        leaked_body = json.dumps({"photoUri": "https://example.com/img?key=MY_SECRET_KEY"}).encode()
+        with patch("urllib.request.urlopen", side_effect=[_FakeResp(clean_body), _FakeResp(leaked_body)]):
+            self.assertEqual(
+                resolve_places_photo_uri("places/P1/photos/PH1", "MY_SECRET_KEY"),
+                "https://lh3.googleusercontent.com/places/CLEAN=w960",
+            )
+            self.assertIsNone(resolve_places_photo_uri("places/P1/photos/PH2", "MY_SECRET_KEY"))
 
 
 if __name__ == "__main__":

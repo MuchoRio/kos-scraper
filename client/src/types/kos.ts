@@ -54,6 +54,7 @@ export interface GmapsInfo {
   review_count?: number | null;
   limited_view?: boolean;
   maps_url?: string | null;
+  photos?: string[];
   reason?: string | null;
   positive_reviews: GmapsReview[];
   negative_reviews: GmapsReview[];
@@ -86,6 +87,7 @@ export interface KosItem {
   peraturan?: string[];
   image_url?: string | null;
   image_urls?: string[];
+  image_source?: string | null;
   lat?: number | null;
   lon?: number | null;
   distance_km?: number | null;

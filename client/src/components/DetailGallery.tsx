@@ -48,9 +48,16 @@ export function DetailGallery({ item }: { item: KosItem }) {
         <img
           src={currentUrl}
           alt={`${item.title || "Foto kos"} (${safeIdx + 1}/${validPhotos.length})`}
+          referrerPolicy="no-referrer"
           onError={() => setBroken((prev) => ({ ...prev, [currentUrl]: true }))}
           className="h-full w-full object-cover"
         />
+
+        {item.image_source === "google_maps" && (
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-black/65 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-xs">
+            Foto via Google Maps
+          </span>
+        )}
 
         {validPhotos.length > 1 && (
           <>
@@ -91,7 +98,13 @@ export function DetailGallery({ item }: { item: KosItem }) {
                   : "border-transparent opacity-65 hover:opacity-100"
               }`}
             >
-              <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+              <img
+                src={url}
+                alt=""
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-cover"
+              />
             </button>
           ))}
         </div>

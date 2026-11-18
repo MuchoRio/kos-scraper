@@ -108,6 +108,7 @@ export function ListingBentoCard({
             src={heroPhoto!}
             alt={item.title || "Foto kos"}
             loading="lazy"
+            referrerPolicy="no-referrer"
             onError={() => setImgFailed(true)}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
@@ -134,6 +135,11 @@ export function ListingBentoCard({
           <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
         </button>
 
+        {hasPhoto && item.image_source === "google_maps" && (
+          <span className="absolute bottom-2.5 left-3 rounded-full bg-black/65 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
+            Foto Google Maps
+          </span>
+        )}
         {hasPhoto && photoCount > 1 && (
           <span className="absolute bottom-2.5 right-3 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-xs">
             <Images className="h-3 w-3" />

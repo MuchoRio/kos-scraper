@@ -16,6 +16,7 @@ from typing import Any
 
 from .geo import haversine_km
 from .gmaps_analyzer import analyze_reviews
+from .models import dedup_image_urls
 
 DEFAULT_GMAPS_CACHE = Path(__file__).resolve().parent / ".cache" / "gmaps_cache.json"
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +29,7 @@ PLACES_FIELD_MASK = ",".join([
     "places.rating",
     "places.userRatingCount",
     "places.googleMapsUri",
+    "places.photos",
     "places.reviews",
 ])
 
@@ -48,8 +50,28 @@ def build_gmaps_query(item: dict[str, Any]) -> str:
     return " ".join(parts).strip()
 
 
+def resolve_places_photo_uri(
+    photo_name: str, api_key: str, max_width: int = 960, timeout: float = 10.0
+) -> str | None:
+    """Resolve a clean CDN photoUri from Places API (New) media endpoint without leaking api_key."""
+    clean_name = (photo_name or "").strip().lstrip("/")
+    if not clean_name or not api_key:
+        return None
+    media_url = f"https://places.googleapis.com/v1/{clean_name}/media?maxWidthPx={max_width}&skipHttpRedirect=true"
+    req = urllib.request.Request(media_url, method="GET", headers={"X-Goog-Api-Key": api_key})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
+        return None
+    uri = str(data.get("photoUri") or "").strip()
+    if not uri.startswith(("http://", "https://")) or api_key in uri or "key=" in uri.lower():
+        return None
+    return uri
+
+
 def fetch_places_api(query: str, api_key: str, timeout: float = 15.0) -> dict[str, Any]:
-    """Query official Google Places API (New) for rating, coordinates, and reviews."""
+    """Query official Google Places API (New) for rating, coordinates, reviews, and photos."""
     payload = json.dumps({"textQuery": query, "languageCode": "id", "maxResultCount": 1}).encode("utf-8")
     req = urllib.request.Request(
         PLACES_SEARCH_URL,
@@ -66,7 +88,7 @@ def fetch_places_api(query: str, api_key: str, timeout: float = 15.0) -> dict[st
 
     places = data.get("places") or []
     if not places:
-        return {"status": "not_found", "engine": "places_api", "reviews": []}
+        return {"status": "not_found", "engine": "places_api", "reviews": [], "photos": []}
 
     place = places[0]
     loc = place.get("location") or {}
@@ -80,6 +102,12 @@ def fetch_places_api(query: str, api_key: str, timeout: float = 15.0) -> dict[st
             "relative_time": rev.get("relativePublishTimeDescription") or "",
             "text": text_obj.get("text") or "",
         })
+    resolved_photos: list[str] = []
+    for photo_obj in (place.get("photos") or [])[:5]:
+        name = (photo_obj or {}).get("name") if isinstance(photo_obj, dict) else None
+        uri = resolve_places_photo_uri(str(name or ""), api_key, timeout=min(timeout, 10.0))
+        if uri:
+            resolved_photos.append(uri)
 
     return {
         "status": "ok",
@@ -91,6 +119,7 @@ def fetch_places_api(query: str, api_key: str, timeout: float = 15.0) -> dict[st
         "maps_url": place.get("googleMapsUri"),
         "lat": loc.get("latitude"),
         "lon": loc.get("longitude"),
+        "photos": dedup_image_urls(resolved_photos, limit=8),
         "reviews": reviews,
     }
 
@@ -164,8 +193,9 @@ class GoogleMapsEnricher:
         norm_q = re.sub(r"\s+", " ", cache_basis)
         key = f"{'api' if self.api_key else 'web'}:{norm_q}"
         with self._lock:
-            if key in self._cache:
-                return self._cache[key]
+            cached = self._cache.get(key)
+            if isinstance(cached, dict) and "photos" in cached:
+                return cached
             elapsed = time.monotonic() - self._last_hit
             if self._last_hit > 0 and elapsed < self.min_delay:
                 time.sleep(self.min_delay - elapsed)
@@ -183,6 +213,7 @@ class GoogleMapsEnricher:
             raw = {"status": "error", "reason": str(exc), "reviews": []}
 
         analysis = analyze_reviews(raw.get("reviews") or [])
+        photos = dedup_image_urls(raw.get("photos") or [], limit=8)
         result = {
             "status": raw.get("status", "error"),
             "engine": raw.get("engine") or ("places_api" if self.api_key else "chrome_browser"),
@@ -194,6 +225,7 @@ class GoogleMapsEnricher:
             "maps_url": raw.get("maps_url") or effective_direct,
             "lat": raw.get("lat"),
             "lon": raw.get("lon"),
+            "photos": photos,
             "reason": raw.get("reason"),
             **analysis,
         }
@@ -222,6 +254,20 @@ class GoogleMapsEnricher:
                 record["distance_km"] = haversine_km(
                     float(gmaps["lat"]), float(gmaps["lon"]), float(ref_lat), float(ref_lon)
                 )
+        gmaps_photos = dedup_image_urls(gmaps.get("photos") or [], limit=8)
+        if gmaps_photos:
+            existing_photos = dedup_image_urls(
+                [*(record.get("image_urls") or []), record.get("image_url")],
+                limit=12,
+            )
+            if existing_photos:
+                record["image_urls"] = dedup_image_urls([*existing_photos, *gmaps_photos], limit=12)
+                record["image_url"] = existing_photos[0]
+                record.setdefault("image_source", "listing")
+            else:
+                record["image_urls"] = gmaps_photos
+                record["image_url"] = gmaps_photos[0]
+                record["image_source"] = "google_maps"
         if gmaps.get("review_price_estimate"):
             record["price_estimate_from_reviews"] = gmaps["review_price_estimate"]
             record["price_estimate_text"] = gmaps["review_price_estimate_text"]
