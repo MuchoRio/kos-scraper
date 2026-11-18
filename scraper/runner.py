@@ -117,6 +117,8 @@ def enrich_details(
     counter_lock = threading.Lock()
     done_count = 0
     results: list[dict[str, Any] | None] = [None] * total
+    stream_items = total <= 200
+    emit_step = 1 if total <= 200 else max(1, total // 50)
 
     def process_one(idx: int, cand: dict[str, Any]) -> None:
         nonlocal done_count
@@ -148,15 +150,17 @@ def enrich_details(
             with counter_lock:
                 done_count += 1
                 cur = done_count
-            safe_emit({
-                "type": "phase",
-                "phase": "detail",
-                "current": cur,
-                "total": total,
-                "source": src,
-                "message": f"[{src}] Selesai ({cur}/{total}): {record.get('title') or cand['url']}",
-            })
-            safe_emit({"type": "item", "current": cur, "total": total, "item": record})
+            if cur == 1 or cur == total or cur % emit_step == 0:
+                safe_emit({
+                    "type": "phase",
+                    "phase": "detail",
+                    "current": cur,
+                    "total": total,
+                    "source": src,
+                    "message": f"[{src}] Selesai ({cur}/{total}): {record.get('title') or cand['url']}",
+                })
+            if stream_items:
+                safe_emit({"type": "item", "current": cur, "total": total, "item": record})
         except Exception as exc:
             err_rec = dict(cand)
             err_rec["error"] = str(exc)

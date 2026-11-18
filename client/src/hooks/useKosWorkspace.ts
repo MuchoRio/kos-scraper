@@ -123,10 +123,16 @@ export function useKosWorkspace() {
         es.close();
         eventSourceRef.current = null;
         if (job.status === "completed") {
-          if (job.items.length > 0) setItems(job.items);
+          if (job.items.length > 0) {
+            setItems(job.items);
+          } else if (job.files?.detail_json && job.itemsCount > 0) {
+            fetchResultFile(job.files.detail_json)
+              .then((res) => setItems(res.items))
+              .catch(() => {});
+          }
           setActiveFile(job.files?.detail_json || null);
           fetchInitialResults().then((r) => setFiles(r.files)).catch(() => {});
-          notify(`Scrape selesai: ${job.itemsCount} detail tersimpan.`);
+          notify(`Scrape selesai: ${job.itemsCount.toLocaleString("id-ID")} detail tersimpan.`);
         } else if (job.status === "failed") {
           setErrorMsg(job.error || "Scrape gagal dijalankan.");
         } else if (job.status === "cancelled") {

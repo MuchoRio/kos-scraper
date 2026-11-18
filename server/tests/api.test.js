@@ -145,7 +145,8 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
       quality: "worth_it",
       gender: "campur",
       pet: "pet_friendly",
-      detailsLimit: 120,
+      detailsLimit: 0,
+      liveEnrichLimit: 500,
       keepHistory: false,
       storageMode: "merge",
     }),
@@ -160,7 +161,8 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
   assert.equal(resJob.options.priceCategory, "murah");
   assert.equal(resJob.options.availability, "strict_available");
   assert.equal(resJob.options.storageMode, "merge");
-  assert.equal(resJob.options.detailsLimit, 120);
+  assert.equal(resJob.options.detailsLimit, 0);
+  assert.equal(resJob.options.liveEnrichLimit, 500);
 
   const delPreset = await fetch(`${srv.baseUrl}/api/resources/presets/${savedPreset.preset.id}`, {
     method: "DELETE",

@@ -33,8 +33,8 @@ export function ScrapeFormCard({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const limit = Math.min(300, Math.max(1, Number(targetKos) || 20));
-    const pages = Math.min(15, Math.max(1, Number(settings.maxPages) || 6));
+    const limit = Math.min(2000, Math.max(1, Number(targetKos) || 20));
+    const pages = Math.min(30, Math.max(1, Number(settings.maxPages) || 6));
     onStartJob({
       sources: settings.sources,
       area,
@@ -130,7 +130,8 @@ export function ScrapeFormCard({
         <TargetLimitField
           label="Target Jumlah Kos"
           value={targetKos}
-          max={300}
+          max={2000}
+          presets={["20", "100", "500"]}
           className="lg:col-span-3"
           onChange={setTargetKos}
         />

@@ -114,10 +114,16 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
         es.close();
         esRef.current = null;
         if (job.status === "completed") {
-          if (job.items.length > 0) setItems(job.items);
+          if (job.items.length > 0) {
+            setItems(job.items);
+          } else if (job.files?.detail_json && job.itemsCount > 0) {
+            fetchResourceFile(job.files.detail_json)
+              .then((res) => setItems(res.items))
+              .catch(() => {});
+          }
           setActiveFile(job.files?.detail_json || null);
           fetchResourceResults().then((r) => setFiles(r.files)).catch(() => {});
-          notify(`Analisa direktori selesai: ${job.itemsCount} kos diperkaya.`);
+          notify(`Analisa direktori selesai: ${job.itemsCount.toLocaleString("id-ID")} kos tersimpan.`);
         } else if (job.status === "failed") {
           setErrorMsg(job.error || "Analisa direktori gagal.");
         } else if (job.status === "cancelled") {

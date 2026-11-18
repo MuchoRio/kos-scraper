@@ -103,6 +103,45 @@ class TestResourceParserAndRunner(unittest.TestCase):
             self.assertTrue((out_dir / "resources" / res["files"]["detail_json"]).exists())
             self.assertTrue((out_dir / "resources" / res["files"]["csv"]).exists())
 
+    def test_details_limit_zero_processes_all_rows_and_caps_live_enrich(self) -> None:
+        mini_csv = "\n".join([
+            "No,Nama Kost,WA Kontak,Kecamatan",
+            "1,Kost Alpha Mampang,+62 81211110001,Mampang Prapatan",
+            "2,Kost Beta Tebet,+62 81211110002,Tebet",
+            "3,Kost Gamma Pancoran,+62 81211110003,Pancoran",
+        ])
+        url = "https://docs.google.com/spreadsheets/d/1SYNTHETIC_SHEET_ID_ALL_ROWS/edit?gid=0"
+        calls: list[bool] = []
+
+        def fake_enrich(self, rec, ref_lat=None, ref_lon=None, direct_url=None, cache_only=False):
+            calls.append(bool(cache_only))
+            if not cache_only:
+                rec["gmaps"] = {"status": "ok", "rating": 4.9}
+            return rec
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = pathlib.Path(tmp)
+            with (
+                patch("scraper.resource_parser._fetch_text", return_value=mini_csv),
+                patch("scraper.gmaps.GoogleMapsEnricher.enrich_item", new=fake_enrich),
+            ):
+                res = run_resource_analysis(
+                    url=url,
+                    area="jakarta-selatan",
+                    max_price=None,
+                    details_limit=0,
+                    live_enrich_limit=1,
+                    include_unpriced=True,
+                    geocode=False,
+                    gmaps=True,
+                    concurrency=1,
+                    out_dir=out_dir,
+                )
+            self.assertEqual(res["detail_count"], 3)
+            self.assertEqual(calls, [False, True, True])
+            self.assertEqual(res["items"][0]["gmaps"]["rating"], 4.9)
+            self.assertIsNone(res["items"][1].get("gmaps"))
+
 
 if __name__ == "__main__":
     unittest.main()

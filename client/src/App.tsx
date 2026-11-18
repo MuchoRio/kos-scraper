@@ -47,6 +47,7 @@ export function App() {
     resourcePet: "all",
     resourceDeduplicate: true,
     resourceIncludeUnpriced: false,
+    resourceLiveEnrichLimit: "100",
   });
 
   const activeWs = workspaceMode === "resource" ? resWs : ws;

@@ -93,12 +93,13 @@ def _enrich_single_row(
     ref_lat: float | None,
     ref_lon: float | None,
     max_price: int | None,
+    allow_live: bool = True,
 ) -> dict[str, Any]:
     rec = dict(row)
     platform_url = rec.pop("platform_url", None)
     gmaps_hint = rec.pop("gmaps_url_hint", None)
 
-    if platform_url:
+    if allow_live and platform_url:
         try:
             scraped = get_adapter(rec["source"], client=http).parse_detail(platform_url).to_dict()
             for key in ("title", "nama_kost", "price", "price_text", "price_options", "price_source", "jenis", "kecamatan", "kelurahan", "alamat", "deskripsi", "fasilitas", "fasilitas_list", "peraturan", "image_url", "image_urls", "lat", "lon", "nama_pemilik"):
@@ -111,7 +112,11 @@ def _enrich_single_row(
     direct_maps_url: str | None = gmaps_hint
     if gmaps_hint:
         if rec.get("lat") is None or rec.get("lon") is None:
-            slat, slon, resolved_u = resolve_maps_shortlink(gmaps_hint)
+            if allow_live:
+                slat, slon, resolved_u = resolve_maps_shortlink(gmaps_hint)
+            else:
+                slat, slon = extract_coords_from_maps_url(gmaps_hint)
+                resolved_u = gmaps_hint
             if slat is not None and slon is not None:
                 rec["lat"], rec["lon"] = slat, slon
             if resolved_u:
@@ -119,9 +124,9 @@ def _enrich_single_row(
         rec.setdefault("gmaps", {})["maps_url"] = direct_maps_url
 
     if gm is not None:
-        gm.enrich_item(rec, ref_lat=ref_lat, ref_lon=ref_lon, direct_url=direct_maps_url)
+        gm.enrich_item(rec, ref_lat=ref_lat, ref_lon=ref_lon, direct_url=direct_maps_url, cache_only=not allow_live)
     if geo is not None:
-        geo.enrich_distance(rec, ref_lat, ref_lon, allow_remote=True)
+        geo.enrich_distance(rec, ref_lat, ref_lon, allow_remote=allow_live)
     elif rec.get("lat") is not None and rec.get("lon") is not None and ref_lat is not None and ref_lon is not None:
         rec["distance_km"] = haversine_km(float(rec["lat"]), float(rec["lon"]), float(ref_lat), float(ref_lon))
 
@@ -142,6 +147,7 @@ def run_resource_analysis(
     max_price: int | None = 1_500_000,
     keywords: list[str] | None = None,
     details_limit: int = 25,
+    live_enrich_limit: int = 100,
     only_available: bool = True,
     deduplicate: bool = True,
     include_unpriced: bool = False,
@@ -189,8 +195,9 @@ def run_resource_analysis(
         gender=gender,
         pet=pet,
     )
-    targets = filtered[: max(1, details_limit)]
+    targets = filtered if details_limit <= 0 else filtered[:details_limit]
     total = len(targets)
+    live_cap = total if live_enrich_limit <= 0 else min(total, live_enrich_limit)
 
     http = PoliteHttpClient()
     geo = Geocoder() if geocode else None
@@ -199,16 +206,21 @@ def run_resource_analysis(
     results: list[dict[str, Any] | None] = [None] * total
     done = 0
     cnt_lock = threading.Lock()
+    stream_items = total <= 200
+    emit_step = 1 if total <= 200 else max(1, total // 50)
 
     def work(idx: int, row: dict[str, Any]) -> None:
         nonlocal done
-        rec = _enrich_single_row(row, http, gm, geo, ref_lat, ref_lon, max_price)
+        allow_live = idx < live_cap
+        rec = _enrich_single_row(row, http, gm, geo, ref_lat, ref_lon, max_price, allow_live=allow_live)
         results[idx] = rec
         with cnt_lock:
             done += 1
             cur = done
-        emit({"type": "phase", "phase": "detail", "current": cur, "total": total, "message": f"[resource] Selesai ({cur}/{total}): {rec.get('title')}"})
-        emit({"type": "item", "current": cur, "total": total, "item": rec})
+        if cur == 1 or cur == total or cur % emit_step == 0:
+            emit({"type": "phase", "phase": "detail", "current": cur, "total": total, "message": f"[resource] Diproses ({cur}/{total}): {rec.get('title')}"})
+        if stream_items:
+            emit({"type": "item", "current": cur, "total": total, "item": rec})
 
     if total > 0:
         workers = max(1, min(int(concurrency), 6, total))

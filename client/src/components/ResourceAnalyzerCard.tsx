@@ -94,6 +94,12 @@ export function ResourceAnalyzerCard({
     }
   };
 
+  const parsedDetailsLimit =
+    targetCount === "all" || targetCount === "0"
+      ? 0
+      : Math.min(25000, Math.max(1, Number(targetCount) || 20));
+  const parsedLiveLimit = Math.max(0, Math.min(25000, Number(settings.resourceLiveEnrichLimit) || 0));
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (sourceMode === "server" && !presetId) return;
@@ -102,7 +108,8 @@ export function ResourceAnalyzerCard({
       area,
       maxPrice: maxPrice ? Number(maxPrice) : null,
       keywords: parsedKws,
-      detailsLimit: Math.min(300, Math.max(1, Number(targetCount) || 20)),
+      detailsLimit: parsedDetailsLimit,
+      liveEnrichLimit: parsedLiveLimit,
       concurrency: Math.min(6, Math.max(1, Number(settings.concurrency) || 4)),
       onlyAvailable: settings.resourceAvailability !== "all",
       deduplicate: settings.resourceDeduplicate,
@@ -184,9 +191,11 @@ export function ResourceAnalyzerCard({
         </label>
 
         <TargetLimitField
-          label="Batas Enrich"
+          label="Target Data"
           value={targetCount}
-          max={300}
+          max={25000}
+          presets={["50", "200", "1000"]}
+          allowAll
           className="lg:col-span-3"
           onChange={setTargetCount}
         />
@@ -210,6 +219,7 @@ export function ResourceAnalyzerCard({
           {settings.resourceQuality !== "all" && <> · Kualitas: <strong>{settings.resourceQuality}</strong></>}
           {settings.resourceGender !== "all" && <> · Gender: <strong>{settings.resourceGender}</strong></>}
           {settings.resourcePet !== "all" && <> · Pet: <strong>{settings.resourcePet}</strong></>}
+          {" · "}Enrich Live: <strong>{parsedLiveLimit === 0 ? "Semua" : `${parsedLiveLimit} teratas`}</strong>
           {" · "}File:{" "}
           <strong>
             {settings.storageMode === "merge"

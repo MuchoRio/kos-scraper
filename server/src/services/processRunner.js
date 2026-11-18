@@ -9,6 +9,7 @@ export function buildPythonArgs(rootDir, dataDir, options) {
       "--url", options.url,
       "--area", options.area,
       "--details", String(options.detailsLimit),
+      "--live-enrich-limit", String(options.liveEnrichLimit ?? 100),
       "--concurrency", String(options.concurrency || 4),
       "--out-dir", dataDir,
       "--progress-jsonl",

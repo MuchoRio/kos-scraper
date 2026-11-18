@@ -16,6 +16,7 @@ export interface ResourceSettingsValues {
   resourcePet: ResourcePetFilter;
   resourceDeduplicate: boolean;
   resourceIncludeUnpriced: boolean;
+  resourceLiveEnrichLimit: string;
 }
 
 interface ResourceSettingsSectionProps {
@@ -92,7 +93,7 @@ export function ResourceSettingsSection({ values, onChange }: ResourceSettingsSe
           </select>
         </label>
 
-        <label className="space-y-1 sm:col-span-2">
+        <label className="space-y-1">
           <span className="block text-[var(--text-muted)]">Status Pet Friendly</span>
           <select
             value={values.resourcePet}
@@ -102,6 +103,21 @@ export function ResourceSettingsSection({ values, onChange }: ResourceSettingsSe
             <option value="all">Semua Status Hewan</option>
             <option value="pet_friendly">Boleh Hewan (Cat / Dog / Pet Friendly)</option>
             <option value="no_pet">Tidak Pet Friendly</option>
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="block text-[var(--text-muted)]">Batas Enrich Live (Maps &amp; Link)</span>
+          <select
+            value={values.resourceLiveEnrichLimit}
+            onChange={(e) => onChange({ resourceLiveEnrichLimit: e.target.value })}
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-2"
+          >
+            <option value="25">25 teratas (Super Cepat)</option>
+            <option value="100">100 teratas (Default Seimbang)</option>
+            <option value="300">300 teratas</option>
+            <option value="1000">1.000 teratas</option>
+            <option value="0">Semua / Tanpa Batas (Bisa lama)</option>
           </select>
         </label>
       </div>

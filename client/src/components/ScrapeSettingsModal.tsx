@@ -169,7 +169,7 @@ export function ScrapeSettingsModal({
                 <input
                   type="number"
                   min={1}
-                  max={15}
+                  max={30}
                   value={settings.maxPages}
                   onChange={(e) => onChange({ ...settings, maxPages: e.target.value })}
                   className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-1.5 font-mono-tabular"

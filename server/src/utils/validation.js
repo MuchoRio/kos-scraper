@@ -59,8 +59,8 @@ export function validateJobPayload(body) {
     maxPrice = Math.round(parsed);
   }
 
-  const maxPages = Math.min(20, Math.max(1, Number.parseInt(body.maxPages ?? 5, 10) || 5));
-  const detailsLimit = Math.min(300, Math.max(1, Number.parseInt(body.detailsLimit ?? 20, 10) || 20));
+  const maxPages = Math.min(30, Math.max(1, Number.parseInt(body.maxPages ?? 5, 10) || 5));
+  const detailsLimit = parseCapLimit(body.detailsLimit, 20, 2000, false);
   const concurrency = Math.min(8, Math.max(1, Number.parseInt(body.concurrency ?? 4, 10) || 4));
   const sort = body.sort === "price" ? "price" : body.sort === "newest" ? "date" : "default";
   const order = body.order === "asc" ? "asc" : "desc";
@@ -109,6 +109,15 @@ export function validateJobPayload(body) {
     refLat,
     refLon,
   };
+}
+
+export function parseCapLimit(raw, fallback, maxCap, allowZeroAll = true) {
+  if (allowZeroAll && (raw === 0 || String(raw ?? "").trim().toLowerCase() === "all" || String(raw ?? "").trim() === "0")) {
+    return 0;
+  }
+  const parsed = Number.parseInt(raw ?? fallback, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(maxCap, parsed);
 }
 
 export function sanitizeCsvCell(value) {

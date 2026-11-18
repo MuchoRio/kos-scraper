@@ -56,6 +56,7 @@ export interface ResourceJobOptions {
   maxPrice: number | null;
   keywords: string[];
   detailsLimit: number;
+  liveEnrichLimit?: number;
   concurrency: number;
   onlyAvailable: boolean;
   deduplicate: boolean;

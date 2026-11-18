@@ -123,9 +123,10 @@ export class JobQueueManager {
     job.status = "running";
     job.updatedAt = new Date().toISOString();
     job.progress = { phase: "starting", current: 0, total: 0, message: "Menjalankan engine..." };
+    const targetLabel = job.options.detailsLimit === 0 ? "Semua" : job.options.detailsLimit;
     const startMsg =
       job.options.kind === "resource"
-        ? `Memulai riset direktori: ${job.options.area} (target ${job.options.detailsLimit})`
+        ? `Memulai riset direktori: ${job.options.area} (target ${targetLabel})`
         : `Memulai scrape: ${job.options.sources.join(", ")} (${job.options.area})`;
     this._pushLog(job, startMsg);
     this._broadcast(job.id, "status", this._publicJob(job));
@@ -148,7 +149,7 @@ export class JobQueueManager {
 
     let stdoutBuf = "";
     let stderrBuf = "";
-    const MAX_STDOUT = 8 * 1024 * 1024;
+    const MAX_STDOUT = 32 * 1024 * 1024;
 
     child.stdout.on("data", (chunk) => {
       if (stdoutBuf.length < MAX_STDOUT) {
@@ -178,14 +179,16 @@ export class JobQueueManager {
           try {
             const parsed = JSON.parse(stdoutBuf);
             job.items = Array.isArray(parsed.items) ? parsed.items : job.items;
-            job.itemsCount = job.items.length;
+            const reportedCount = Number.isFinite(parsed.detail_count) ? parsed.detail_count : null;
+            job.itemsCount =
+              parsed.items_saved_to_file && reportedCount !== null ? reportedCount : job.items.length;
             job.files = parsed.files || job.files;
             job.status = "completed";
             job.progress = {
               phase: "done",
               current: job.itemsCount,
               total: job.itemsCount,
-              message: `Selesai (${job.itemsCount} detail disimpan).`,
+              message: `Selesai (${job.itemsCount} kos tersimpan).`,
             };
           } catch (parseErr) {
             job.status = "failed";

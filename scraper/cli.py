@@ -83,6 +83,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ar = sub.add_parser("analyze-resource")
     _add_resource_filter_flags(ar)
     ar.add_argument("--details", type=int, default=25)
+    ar.add_argument("--live-enrich-limit", type=int, default=100)
     ar.add_argument("--concurrency", type=int, default=4)
     ar.add_argument("--out-dir", default="")
     ar.add_argument("--geocode", action="store_true")
@@ -134,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
             max_price=args.max_price,
             keywords=kws_res,
             details_limit=args.details,
+            live_enrich_limit=args.live_enrich_limit,
             only_available=args.only_available or args.availability != "all",
             deduplicate=not args.no_dedup,
             include_unpriced=args.include_unpriced,
@@ -153,6 +155,8 @@ def main(argv: list[str] | None = None) -> int:
             concurrency=max(1, min(6, args.concurrency)),
             progress_cb=cb,
         )
+        if use_jsonl and len(summary.get("items") or []) > 200:
+            summary = {**summary, "items": [], "items_saved_to_file": True}
         print(json.dumps(summary, ensure_ascii=False, indent=1))
         return 0
 
@@ -229,6 +233,8 @@ def main(argv: list[str] | None = None) -> int:
             concurrency=max(1, min(8, args.concurrency)),
             progress_cb=cb,
         )
+        if use_jsonl and len(summary.get("items") or []) > 200:
+            summary = {**summary, "items": [], "items_saved_to_file": True}
         print(json.dumps(summary, ensure_ascii=False, indent=1))
         return 0
     return 1

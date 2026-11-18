@@ -187,7 +187,7 @@ class GoogleMapsEnricher:
             encoding="utf-8",
         )
 
-    def lookup(self, query: str, direct_url: str | None = None) -> dict[str, Any]:
+    def lookup(self, query: str, direct_url: str | None = None, cache_only: bool = False) -> dict[str, Any] | None:
         effective_direct = direct_url.strip() if (direct_url and not self.api_key) else None
         cache_basis = effective_direct.lower() if effective_direct else query.strip().lower()
         norm_q = re.sub(r"\s+", " ", cache_basis)
@@ -196,6 +196,8 @@ class GoogleMapsEnricher:
             cached = self._cache.get(key)
             if isinstance(cached, dict) and "photos" in cached:
                 return cached
+            if cache_only:
+                return None
             elapsed = time.monotonic() - self._last_hit
             if self._last_hit > 0 and elapsed < self.min_delay:
                 time.sleep(self.min_delay - elapsed)
@@ -241,11 +243,14 @@ class GoogleMapsEnricher:
         ref_lat: float | None = None,
         ref_lon: float | None = None,
         direct_url: str | None = None,
+        cache_only: bool = False,
     ) -> dict[str, Any]:
         query = build_gmaps_query(record)
         if not query and not direct_url:
             return record
-        gmaps = self.lookup(query or "Kos Jakarta", direct_url=direct_url)
+        gmaps = self.lookup(query or "Kos Jakarta", direct_url=direct_url, cache_only=cache_only)
+        if gmaps is None:
+            return record
         record["gmaps"] = gmaps
         if (record.get("lat") is None or record.get("lon") is None) and gmaps.get("lat") is not None:
             record["lat"] = gmaps["lat"]
