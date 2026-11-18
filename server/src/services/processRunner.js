@@ -18,12 +18,18 @@ export function buildPythonArgs(rootDir, dataDir, options) {
     if (options.onlyAvailable) args.push("--only-available");
     if (options.includeUnpriced) args.push("--include-unpriced");
     if (options.deduplicate === false) args.push("--no-dedup");
+    if (options.priceCategory) args.push("--price-category", options.priceCategory);
+    if (options.availability) args.push("--availability", options.availability);
+    if (options.quality) args.push("--quality", options.quality);
+    if (options.gender) args.push("--gender", options.gender);
+    if (options.pet) args.push("--pet", options.pet);
     if (options.geocode) args.push("--geocode");
     if (options.gmaps) args.push("--gmaps");
     if (options.refLat !== null && options.refLon !== null) {
       args.push("--ref-lat", String(options.refLat), "--ref-lon", String(options.refLon));
     }
     if (options.maskContact) args.push("--mask-contact");
+    if (options.keepHistory) args.push("--keep-history");
     return args;
   }
 
@@ -48,6 +54,7 @@ export function buildPythonArgs(rootDir, dataDir, options) {
     args.push("--ref-lat", String(options.refLat), "--ref-lon", String(options.refLon));
   }
   if (options.maskContact) args.push("--mask-contact");
+  if (options.keepHistory) args.push("--keep-history");
   return args;
 }
 

@@ -18,6 +18,7 @@ from .resource_doc import (
     extract_phone_and_link as _extract_phone_and_link,
     fetch_google_text as _fetch_text,
     load_google_doc,
+    matches_meta_filters,
     parse_google_resource_url,
     strip_leading_emoji as _strip_leading_emoji,
 )
@@ -66,6 +67,7 @@ def _normalize_row(row_num: int, raw_map: dict[str, str], source_url: str, kid: 
     qual = _strip_leading_emoji(_clean_cell(raw_map.get("kualitas")))
     if qual:
         peraturan.append(f"Kurasi: {qual}")
+    price_cat = _strip_leading_emoji(_clean_cell(raw_map.get("kategori_harga")))
 
     unique_url = contact_url or (f"{source_url.split('#')[0]}#row={kid or row_num}")
     return {
@@ -82,6 +84,10 @@ def _normalize_row(row_num: int, raw_map: dict[str, str], source_url: str, kid: 
         "price_options": [price] if price else [],
         "price_suspect": price is None or price < 100_000,
         "price_source": "resource_sheet" if price else "unavailable",
+        "kategori_harga": price_cat,
+        "kualitas": qual,
+        "status_ketersediaan": avail,
+        "pet_status": pet,
         "jenis": _strip_leading_emoji(_clean_cell(raw_map.get("gender"))),
         "kecamatan": _clean_cell(raw_map.get("kecamatan")),
         "kelurahan": _clean_cell(raw_map.get("kelurahan")),
@@ -115,6 +121,7 @@ def _col_index_map(headers: list[str]) -> dict[str, int]:
         "id": find("id kost"),
         "nama": find("nama kost", "nama kos", "nama"),
         "harga": find("harga/bulan", "harga"),
+        "kategori_harga": find("kategori harga"),
         "kontak": find("nomor kontak", "wa kontak", "whatsapp", "kontak", "hp", "telp"),
         "kualitas": find("kualitas"),
         "avail": find("ketersediaan", "status"),
@@ -208,16 +215,22 @@ def filter_and_rank_rows(
     only_available: bool = True,
     deduplicate: bool = True,
     include_unpriced: bool = False,
+    price_category: str = "all",
+    availability: str | None = None,
+    quality: str = "all",
+    gender: str = "all",
+    pet: str = "all",
 ) -> tuple[list[dict[str, Any]], int]:
     """Filter thousands of sheet rows locally and rank richest candidates first."""
     area_needles = AREA_MATCHERS.get(area, ()) if area and area != "all" else ()
     kws = [k.strip().lower() for k in (keywords or []) if k.strip()]
+    avail_mode = availability or ("available_or_unknown" if only_available else "all")
     seen: set[tuple[str, str]] = set()
     dups_skipped = 0
     matched: list[tuple[int, dict[str, Any]]] = []
 
     for r in rows:
-        if only_available and not r.get("is_available", True):
+        if not matches_meta_filters(r, price_category, avail_mode, quality, gender, pet):
             continue
         if deduplicate:
             dk = (r["title"].lower(), (r.get("kecamatan") or r.get("wa") or "").lower())

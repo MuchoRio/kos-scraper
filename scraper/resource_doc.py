@@ -205,3 +205,60 @@ def load_google_doc(
         "sub_docs": sub_docs,
     }
 
+
+def matches_meta_filters(
+    r: dict[str, Any],
+    price_category: str,
+    availability: str,
+    quality: str,
+    gender: str,
+    pet: str,
+) -> bool:
+    """Match Kostpedia categorical filters (Kategori Harga, Ketersediaan, Kualitas, Gender, Pet)."""
+    avail = (r.get("status_ketersediaan") or "").lower()
+    if availability == "strict_available":
+        if "tersedia" not in avail or "penuh" in avail or "tidak aktif" in avail:
+            return False
+    elif availability == "available_or_unknown" and not r.get("is_available", True):
+        return False
+
+    if price_category != "all":
+        kat = (r.get("kategori_harga") or "").lower()
+        p = r.get("price")
+        if price_category == "murah" and not ("murah" in kat or (not kat and p and p <= 1_500_000)):
+            return False
+        if price_category == "middle" and not (any(w in kat for w in ("middle", "standar", "worth")) or (not kat and p and 1_500_000 < p <= 3_000_000)):
+            return False
+        if price_category == "premium" and not (any(w in kat for w in ("premium", "eksklusif", "exclusive", "vip")) or (not kat and p and p > 3_000_000)):
+            return False
+
+    if quality != "all":
+        qual = (r.get("kualitas") or "").lower()
+        if not qual:
+            return False
+        if quality == "top" and "top" not in qual:
+            return False
+        if quality == "worth_it" and "worth" not in qual:
+            return False
+        if quality == "best_deal" and "best" not in qual and "deal" not in qual:
+            return False
+        if quality == "standar" and "standar" not in qual:
+            return False
+
+    if gender != "all":
+        jenis = (r.get("jenis") or "").lower()
+        aliases = {"wanita": ("wanita", "putri"), "pria": ("pria", "putra")}.get(gender, (gender,))
+        if not any(a in jenis for a in aliases):
+            return False
+
+    if pet != "all":
+        pst = (r.get("pet_status") or "").lower()
+        is_no = any(w in pst for w in ("tidak", "no pet", "dilarang"))
+        is_yes = any(w in pst for w in ("cat", "dog", "pet")) and not is_no
+        if pet == "pet_friendly" and not is_yes:
+            return False
+        if pet == "no_pet" and not is_no:
+            return False
+    return True
+
+

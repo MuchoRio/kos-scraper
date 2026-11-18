@@ -76,6 +76,7 @@ export function validateJobPayload(body) {
   const geocode = Boolean(body.geocode);
   const gmaps = Boolean(body.gmaps);
   const maskContact = Boolean(body.maskContact);
+  const keepHistory = Boolean(body.keepHistory);
   let refLat = null;
   let refLon = null;
   if (body.refLat !== null && body.refLat !== undefined && body.refLat !== "") {
@@ -101,6 +102,7 @@ export function validateJobPayload(body) {
     geocode,
     gmaps,
     maskContact,
+    keepHistory,
     refLat,
     refLon,
   };

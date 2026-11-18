@@ -45,12 +45,20 @@ class TestRunnerPipeline(unittest.TestCase):
                     progress_cb=events.append,
                 )
             self.assertEqual(summary["detail_count"], 2)
+            self.assertEqual(summary["files"]["detail_json"], "detail_latest.json")
+            self.assertEqual(summary["files"]["csv"], "hasil_kos_latest.csv")
             self.assertTrue((out_dir / summary["files"]["csv"]).exists())
             self.assertTrue((out_dir / summary["files"]["detail_json"]).exists())
             self.assertTrue(any(ev.get("type") == "done" for ev in events))
             with (out_dir / summary["files"]["csv"]).open("r", encoding="utf-8-sig", newline="") as fh:
                 rows = list(csv.DictReader(fh))
             self.assertEqual(len(rows), 2)
+
+            # Second run with default keep_history=False overwrites without creating extra files
+            with patch("scraper.runner.PoliteHttpClient", return_value=_FixtureHttpClient()):
+                run_hunt(sources=["sewakost", "rukita"], area="jakarta-selatan", max_price=3000000, max_pages=1, keywords=["cipete"], details_limit=2, out_dir=out_dir)
+            json_csv = sorted(p.name for p in out_dir.iterdir() if p.is_file())
+            self.assertEqual(json_csv, ["detail_latest.json", "hasil_kos_latest.csv", "list_latest.json"])
 
     def test_cli_help_executes_cleanly(self) -> None:
         res = subprocess.run(

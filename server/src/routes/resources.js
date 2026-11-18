@@ -7,6 +7,16 @@ import { AppError, safeResultFilename } from "../utils/validation.js";
 const GOOGLE_DOC_OR_SHEET_RE =
   /^https:\/\/docs\.google\.com\/(?:spreadsheets|document)\/d\/[a-zA-Z0-9_-]{15,}(?:\/[^\s]*)?$/i;
 const AREA_RE = /^[a-z0-9-]{2,60}$/;
+const ALLOWED_PRICE_CAT = new Set(["all", "murah", "middle", "premium"]);
+const ALLOWED_AVAIL = new Set(["available_or_unknown", "strict_available", "all"]);
+const ALLOWED_QUALITY = new Set(["all", "curated", "top", "worth_it", "best_deal", "standar"]);
+const ALLOWED_GENDER = new Set(["all", "campur", "wanita", "pria", "bebas"]);
+const ALLOWED_PET = new Set(["all", "pet_friendly", "no_pet"]);
+
+function pickAllowed(val, set, fallback) {
+  const s = String(val || fallback).trim().toLowerCase();
+  return set.has(s) ? s : fallback;
+}
 
 function validateResourceUrl(raw) {
   const url = String(raw || "").trim();
@@ -47,6 +57,11 @@ function validateResourcePayload(body) {
       refLon = lon;
     }
   }
+  const availability = pickAllowed(
+    body.availability,
+    ALLOWED_AVAIL,
+    body.onlyAvailable === false ? "all" : "available_or_unknown"
+  );
   return {
     kind: "resource",
     url,
@@ -55,12 +70,18 @@ function validateResourcePayload(body) {
     keywords,
     detailsLimit,
     concurrency,
-    onlyAvailable: body.onlyAvailable !== false,
+    onlyAvailable: availability !== "all",
     deduplicate: body.deduplicate !== false,
     includeUnpriced: Boolean(body.includeUnpriced),
+    priceCategory: pickAllowed(body.priceCategory, ALLOWED_PRICE_CAT, "all"),
+    availability,
+    quality: pickAllowed(body.quality, ALLOWED_QUALITY, "all"),
+    gender: pickAllowed(body.gender, ALLOWED_GENDER, "all"),
+    pet: pickAllowed(body.pet, ALLOWED_PET, "all"),
     geocode: body.geocode !== false,
     gmaps: body.gmaps !== false,
     maskContact: Boolean(body.maskContact),
+    keepHistory: Boolean(body.keepHistory),
     refLat,
     refLon,
   };
@@ -108,10 +129,22 @@ export function createResourcesRouter({ config, queue }) {
   });
 
   router.post("/resources/inspect", (req, res) => {
-    const { url, area, maxPrice, keywords } = validateResourcePayload(req.body);
-    const args = [path.join(config.rootDir, "kos_scraper.py"), "inspect-resource", "--url", url, "--area", area];
-    if (maxPrice) args.push("--max-price", String(maxPrice));
-    if (keywords.length > 0) args.push("--keyword", keywords.join(","));
+    const opts = validateResourcePayload(req.body);
+    const args = [
+      path.join(config.rootDir, "kos_scraper.py"),
+      "inspect-resource",
+      "--url", opts.url,
+      "--area", opts.area,
+      "--price-category", opts.priceCategory,
+      "--availability", opts.availability,
+      "--quality", opts.quality,
+      "--gender", opts.gender,
+      "--pet", opts.pet,
+    ];
+    if (opts.maxPrice) args.push("--max-price", String(opts.maxPrice));
+    if (opts.keywords.length > 0) args.push("--keyword", opts.keywords.join(","));
+    if (!opts.deduplicate) args.push("--no-dedup");
+    if (opts.includeUnpriced) args.push("--include-unpriced");
 
     const proc = spawnSync(config.pythonBin, args, {
       cwd: config.rootDir,

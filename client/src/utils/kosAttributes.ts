@@ -113,7 +113,7 @@ export function getKosAttributes(item: KosItem): KosAttributes {
     hasNonTexas && !hasTexas ? "non_texas" : hasTexas ? "texas" : "unknown";
 
   const noPet =
-    /\b(?:dilarang\s*(?:bawa\s*|pelihara\s*)?(?:hewan|binatang|kucing|anjing)|tidak\s*boleh\s*(?:bawa\s*|pelihara\s*)?(?:hewan|kucing|anjing)|no\s*pets?)\b/.test(
+    /\b(?:tidak\s*pet\s*friendly|bukan\s*pet\s*friendly|non[\s-]*pet|dilarang\s*(?:bawa\s*|pelihara\s*)?(?:hewan|binatang|kucing|anjing)|tidak\s*boleh\s*(?:bawa\s*|pelihara\s*)?(?:hewan|kucing|anjing)|no\s*pets?)\b/.test(
       blob
     );
   const catHit = /\b(?:cat\s*only|cat\s*friendly|boleh\s*(?:bawa\s*)?kucing|khusus\s*kucing)\b/.test(blob);

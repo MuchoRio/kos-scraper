@@ -1,18 +1,26 @@
-import { Settings2, ShieldAlert, X } from "lucide-react";
+import { FileSpreadsheet, Globe, Settings2, ShieldAlert, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SOURCE_OPTIONS } from "../constants/sources";
-import type { LandmarkRef, SourceId } from "../types/kos";
+import type { LandmarkRef, SourceId, WorkspaceMode } from "../types/kos";
+import {
+  ResourceSettingsSection,
+  StorageModeSection,
+  type ResourceSettingsValues,
+} from "./ResourceSettingsSection";
 
-export interface ScrapeSettingsState {
+export interface ScrapeSettingsState extends ResourceSettingsValues {
   sources: SourceId[];
   maxPages: string;
   concurrency: string;
   landmarkId: string;
   enableGeo: boolean;
   enableGmaps: boolean;
+  keepHistory: boolean;
 }
 
 interface ScrapeSettingsModalProps {
   isOpen: boolean;
+  activeMode: WorkspaceMode;
   settings: ScrapeSettingsState;
   landmarks: LandmarkRef[];
   hasServerMapsKey: boolean;
@@ -24,6 +32,7 @@ interface ScrapeSettingsModalProps {
 
 export function ScrapeSettingsModal({
   isOpen,
+  activeMode,
   settings,
   landmarks,
   hasServerMapsKey,
@@ -32,6 +41,12 @@ export function ScrapeSettingsModal({
   onChangeMapsApiKey,
   onClose,
 }: ScrapeSettingsModalProps) {
+  const [tab, setTab] = useState<WorkspaceMode>(activeMode);
+
+  useEffect(() => {
+    if (isOpen) setTab(activeMode);
+  }, [isOpen, activeMode]);
+
   if (!isOpen) return null;
 
   const toggleSource = (id: SourceId) => {
@@ -55,10 +70,10 @@ export function ScrapeSettingsModal({
         className="flex max-h-[88vh] w-full max-w-2xl flex-col rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-3">
           <div className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-[var(--accent)]" />
-            <h2 className="text-sm font-bold">Pengaturan Sumber &amp; Mesin Scrape</h2>
+            <h2 className="text-sm font-bold">Pengaturan Sumber, Filter &amp; Penyimpanan</h2>
           </div>
           <button
             type="button"
@@ -70,7 +85,41 @@ export function ScrapeSettingsModal({
           </button>
         </div>
 
+        <div className="flex gap-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/40 px-5 py-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setTab("scrape")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold cursor-pointer transition-colors ${
+              tab === "scrape"
+                ? "bg-[var(--bg-card)] text-[var(--accent-text)] shadow-sm"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            <span>Sumber Web &amp; Mesin</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("resource")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold cursor-pointer transition-colors ${
+              tab === "resource"
+                ? "bg-[var(--bg-card)] text-[var(--accent-text)] shadow-sm"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>Filter Resource (Sheet &amp; Doc)</span>
+          </button>
+        </div>
+
         <div className="flex-1 space-y-5 overflow-y-auto p-5 text-xs">
+          {tab === "resource" ? (
+            <ResourceSettingsSection
+              values={settings}
+              onChange={(patch) => onChange({ ...settings, ...patch })}
+            />
+          ) : (
+            <>
           <section className="space-y-2.5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[var(--text-primary)]">
@@ -209,6 +258,13 @@ export function ScrapeSettingsModal({
               /search HTTP 500.
             </p>
           </section>
+            </>
+          )}
+
+          <StorageModeSection
+            keepHistory={settings.keepHistory}
+            onChange={(keepHistory) => onChange({ ...settings, keepHistory })}
+          />
         </div>
 
         <div className="flex justify-end border-t border-[var(--border-subtle)] px-5 py-3">

@@ -1,6 +1,6 @@
-import { FileSpreadsheet, Play, Search } from "lucide-react";
+import { FileSpreadsheet, Play, Search, Settings2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { LandmarkRef, PresetArea, ResourceInspectStats, ResourceJobOptions } from "../types/kos";
+import type { LandmarkRef, PresetArea, ResourceInspectPayload, ResourceInspectStats, ResourceJobOptions } from "../types/kos";
 import { formatIdr } from "../utils/formatters";
 import type { ScrapeSettingsState } from "./ScrapeSettingsModal";
 
@@ -27,7 +27,8 @@ interface ResourceAnalyzerCardProps {
   inspectStats: ResourceInspectStats | null;
   isRunning: boolean;
   maskContactDefault: boolean;
-  onInspect: (payload: { url: string; area: string; maxPrice: number | null; keywords: string[] }) => void;
+  onOpenSettings: () => void;
+  onInspect: (payload: ResourceInspectPayload) => void;
   onRun: (options: ResourceJobOptions) => void;
 }
 
@@ -39,6 +40,7 @@ export function ResourceAnalyzerCard({
   inspectStats,
   isRunning,
   maskContactDefault,
+  onOpenSettings,
   onInspect,
   onRun,
 }: ResourceAnalyzerCardProps) {
@@ -47,9 +49,6 @@ export function ResourceAnalyzerCard({
   const [maxPrice, setMaxPrice] = useState("1500000");
   const [keywords, setKeywords] = useState("mampang, kemang, pancoran, tebet");
   const [targetCount, setTargetCount] = useState("20");
-  const [onlyAvailable, setOnlyAvailable] = useState(true);
-  const [deduplicate, setDeduplicate] = useState(true);
-  const [includeUnpriced, setIncludeUnpriced] = useState(false);
 
   const parsedKws = keywords.split(",").map((k) => k.trim()).filter(Boolean);
   const activeLandmark = landmarks.find((l) => l.id === settings.landmarkId) || landmarks[0] || null;
@@ -60,6 +59,13 @@ export function ResourceAnalyzerCard({
       area,
       maxPrice: maxPrice ? Number(maxPrice) : null,
       keywords: parsedKws,
+      priceCategory: settings.resourcePriceCategory,
+      availability: settings.resourceAvailability,
+      quality: settings.resourceQuality,
+      gender: settings.resourceGender,
+      pet: settings.resourcePet,
+      deduplicate: settings.resourceDeduplicate,
+      includeUnpriced: settings.resourceIncludeUnpriced || !maxPrice,
     });
   };
 
@@ -72,12 +78,18 @@ export function ResourceAnalyzerCard({
       keywords: parsedKws,
       detailsLimit: Math.min(60, Math.max(1, Number(targetCount) || 20)),
       concurrency: Math.min(6, Math.max(1, Number(settings.concurrency) || 4)),
-      onlyAvailable,
-      deduplicate,
-      includeUnpriced,
+      onlyAvailable: settings.resourceAvailability !== "all",
+      deduplicate: settings.resourceDeduplicate,
+      includeUnpriced: settings.resourceIncludeUnpriced,
+      priceCategory: settings.resourcePriceCategory,
+      availability: settings.resourceAvailability,
+      quality: settings.resourceQuality,
+      gender: settings.resourceGender,
+      pet: settings.resourcePet,
       geocode: settings.enableGeo,
       gmaps: settings.enableGmaps,
       maskContact: maskContactDefault,
+      keepHistory: settings.keepHistory,
       refLat: settings.enableGeo && activeLandmark ? activeLandmark.lat : null,
       refLon: settings.enableGeo && activeLandmark ? activeLandmark.lon : null,
     });
@@ -207,19 +219,23 @@ export function ResourceAnalyzerCard({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-muted)]">
-        <label className="inline-flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--accent)]" />
-          <span>Hanya kos tersedia</span>
-        </label>
-        <label className="inline-flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={deduplicate} onChange={(e) => setDeduplicate(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--accent)]" />
-          <span>Hapus baris duplikat</span>
-        </label>
-        <label className="inline-flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={includeUnpriced} onChange={(e) => setIncludeUnpriced(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--accent)]" />
-          <span>Sertakan baris belum ada harga</span>
-        </label>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+        <span>
+          Kategori: <strong>{settings.resourcePriceCategory}</strong>
+          {" · "}Status: <strong>{settings.resourceAvailability === "strict_available" ? "Ketat Tersedia" : settings.resourceAvailability === "all" ? "Semua" : "Tersedia/Kosong"}</strong>
+          {settings.resourceQuality !== "all" && <> · Kualitas: <strong>{settings.resourceQuality}</strong></>}
+          {settings.resourceGender !== "all" && <> · Gender: <strong>{settings.resourceGender}</strong></>}
+          {settings.resourcePet !== "all" && <> · Pet: <strong>{settings.resourcePet}</strong></>}
+          {" · "}File: <strong>{settings.keepHistory ? "Arsip timestamp" : "Timpa terbaru"}</strong>
+        </span>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="inline-flex items-center gap-1 font-medium text-[var(--accent)] hover:underline cursor-pointer"
+        >
+          <Settings2 className="h-3 w-3" />
+          <span>Filter Kategori &amp; Pengaturan →</span>
+        </button>
       </div>
 
       {inspectStats && (

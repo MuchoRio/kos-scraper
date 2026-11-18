@@ -50,6 +50,14 @@ def inspect_resource(
     area: str = "jakarta-selatan",
     max_price: int | None = None,
     keywords: list[str] | None = None,
+    only_available: bool = True,
+    deduplicate: bool = True,
+    include_unpriced: bool | None = None,
+    price_category: str = "all",
+    availability: str | None = None,
+    quality: str = "all",
+    gender: str = "all",
+    pet: str = "all",
 ) -> dict[str, Any]:
     """Quick (<2s) inspection of a Google Sheet/Doc returning stats + filtered count + sample."""
     loaded = load_google_resource(url, area=area, keywords=keywords)
@@ -59,9 +67,14 @@ def inspect_resource(
         area=area,
         max_price=max_price,
         keywords=keywords,
-        only_available=True,
-        deduplicate=True,
-        include_unpriced=max_price is None,
+        only_available=only_available,
+        deduplicate=deduplicate,
+        include_unpriced=max_price is None if include_unpriced is None else include_unpriced,
+        price_category=price_category,
+        availability=availability,
+        quality=quality,
+        gender=gender,
+        pet=pet,
     )
     stats["filtered_count"] = len(filtered)
     stats["duplicates_removed_in_filter"] = dups
@@ -128,6 +141,11 @@ def run_resource_analysis(
     only_available: bool = True,
     deduplicate: bool = True,
     include_unpriced: bool = False,
+    price_category: str = "all",
+    availability: str | None = None,
+    quality: str = "all",
+    gender: str = "all",
+    pet: str = "all",
     geocode: bool = True,
     gmaps: bool = True,
     concurrency: int = 4,
@@ -135,6 +153,7 @@ def run_resource_analysis(
     ref_lon: float | None = None,
     out_dir: Path | None = None,
     mask_contact: bool = False,
+    keep_history: bool = False,
     progress_cb: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Analyze & enrich curated Google Sheet / Doc rows cleanly isolated from web scrapes."""
@@ -155,6 +174,11 @@ def run_resource_analysis(
         only_available=only_available,
         deduplicate=deduplicate,
         include_unpriced=include_unpriced,
+        price_category=price_category,
+        availability=availability,
+        quality=quality,
+        gender=gender,
+        pet=pet,
     )
     targets = filtered[: max(1, details_limit)]
     total = len(targets)
@@ -187,9 +211,13 @@ def run_resource_analysis(
     enriched = [r for r in results if r is not None]
     root_out = (out_dir or (Path(__file__).resolve().parent.parent / "hasil")) / "resources"
     root_out.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    detail_path = write_json(enriched, root_out / f"resource_detail_{area}_{stamp}.json")
-    csv_path = write_csv(enriched, root_out / f"resource_hasil_{stamp}.csv", mask_contact=mask_contact)
+    if keep_history:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        detail_name, csv_name = f"resource_detail_{area}_{stamp}.json", f"resource_hasil_{stamp}.csv"
+    else:
+        detail_name, csv_name = "resource_detail_latest.json", "resource_hasil_latest.csv"
+    detail_path = write_json(enriched, root_out / detail_name)
+    csv_path = write_csv(enriched, root_out / csv_name, mask_contact=mask_contact)
 
     summary = {
         "kind": "resource",

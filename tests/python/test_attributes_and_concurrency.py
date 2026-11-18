@@ -69,6 +69,13 @@ class TestKosAttributes(unittest.TestCase):
         })
         self.assertEqual(negated_pet["pet"], "no_pet")
 
+        sheet_neg_pet = extract_kos_attributes({
+            "title": "Kost Kuningan",
+            "peraturan": ["Tidak Pet Friendly", "Status: Kost Tersedia"],
+            "price": 1_300_000,
+        })
+        self.assertEqual(sheet_neg_pet["pet"], "no_pet")
+
 
 class TestConcurrentRunner(unittest.TestCase):
     def test_concurrent_enrich_preserves_order_and_is_thread_safe(self) -> None:

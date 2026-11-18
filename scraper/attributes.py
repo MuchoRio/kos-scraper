@@ -48,7 +48,7 @@ def extract_kos_attributes(item: dict[str, Any]) -> dict[str, Any]:
     # 2. Pet Friendly (negation guard first)
     no_pet = bool(
         re.search(
-            r"\b(?:dilarang\s*(?:bawa\s*|pelihara\s*)?(?:hewan|binatang|kucing|anjing)|tidak\s*boleh\s*(?:bawa\s*|pelihara\s*)?(?:hewan|kucing|anjing)|no\s*pets?)\b",
+            r"\b(?:tidak\s*pet\s*friendly|bukan\s*pet\s*friendly|non[\s-]*pet|dilarang\s*(?:bawa\s*|pelihara\s*)?(?:hewan|binatang|kucing|anjing)|tidak\s*boleh\s*(?:bawa\s*|pelihara\s*)?(?:hewan|kucing|anjing)|no\s*pets?)\b",
             blob,
         )
     )

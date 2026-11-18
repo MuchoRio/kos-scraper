@@ -34,6 +34,26 @@ export interface ResourceInspectStats {
   top_kecamatan: [string, number][];
 }
 
+export type ResourcePriceCategory = "all" | "murah" | "middle" | "premium";
+export type ResourceAvailability = "available_or_unknown" | "strict_available" | "all";
+export type ResourceQuality = "all" | "curated" | "top" | "worth_it" | "best_deal" | "standar";
+export type ResourceGender = "all" | "campur" | "wanita" | "pria" | "bebas";
+export type ResourcePetFilter = "all" | "pet_friendly" | "no_pet";
+
+export interface ResourceInspectPayload {
+  url: string;
+  area: string;
+  maxPrice: number | null;
+  keywords: string[];
+  priceCategory?: ResourcePriceCategory;
+  availability?: ResourceAvailability;
+  quality?: ResourceQuality;
+  gender?: ResourceGender;
+  pet?: ResourcePetFilter;
+  deduplicate?: boolean;
+  includeUnpriced?: boolean;
+}
+
 export interface ResourceJobOptions {
   url: string;
   area: string;
@@ -44,9 +64,15 @@ export interface ResourceJobOptions {
   onlyAvailable: boolean;
   deduplicate: boolean;
   includeUnpriced: boolean;
+  priceCategory: ResourcePriceCategory;
+  availability: ResourceAvailability;
+  quality: ResourceQuality;
+  gender: ResourceGender;
+  pet: ResourcePetFilter;
   geocode: boolean;
   gmaps: boolean;
   maskContact: boolean;
+  keepHistory: boolean;
   refLat: number | null;
   refLon: number | null;
 }
@@ -219,6 +245,7 @@ export interface JobOptions {
   geocode: boolean;
   gmaps: boolean;
   maskContact: boolean;
+  keepHistory?: boolean;
   refLat: number | null;
   refLon: number | null;
   concurrency?: number;

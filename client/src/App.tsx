@@ -38,6 +38,14 @@ export function App() {
     landmarkId: "bank-mega",
     enableGeo: true,
     enableGmaps: true,
+    keepHistory: false,
+    resourcePriceCategory: "all",
+    resourceAvailability: "available_or_unknown",
+    resourceQuality: "all",
+    resourceGender: "all",
+    resourcePet: "all",
+    resourceDeduplicate: true,
+    resourceIncludeUnpriced: false,
   });
 
   const activeWs = workspaceMode === "resource" ? resWs : ws;
@@ -121,6 +129,7 @@ export function App() {
             inspectStats={resWs.inspectStats}
             isRunning={isJobRunning}
             maskContactDefault={maskContact}
+            onOpenSettings={() => setIsSettingsOpen(true)}
             onInspect={resWs.inspectUrl}
             onRun={resWs.runAnalysis}
           />
@@ -218,6 +227,7 @@ export function App() {
 
       <ScrapeSettingsModal
         isOpen={isSettingsOpen}
+        activeMode={workspaceMode}
         settings={scrapeSettings}
         landmarks={ws.landmarks}
         hasServerMapsKey={ws.hasServerMapsKey}

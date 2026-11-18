@@ -52,6 +52,7 @@ class TestResourceParserAndRunner(unittest.TestCase):
         row1 = loaded["rows"][0]
         self.assertEqual(row1["image_urls"], ["https://lh5.googleusercontent.com/p/IMG1"])
         self.assertEqual(row1["wa_link"], "https://wa.me/6281316059370")
+        self.assertEqual(row1["kategori_harga"], "Kost Murah")
 
         # Filter available <= 1.5jt in jakarta-selatan with deduplication
         filtered, dups = filter_and_rank_rows(
@@ -59,6 +60,16 @@ class TestResourceParserAndRunner(unittest.TestCase):
         )
         self.assertEqual(dups, 1)
         self.assertEqual([r["title"] for r in filtered], ["Kost Tebet"])
+
+        # Strict availability & category/pet filters
+        strict_rows, _ = filter_and_rank_rows(
+            loaded["rows"], area="jakarta-selatan", availability="strict_available", price_category="murah", gender="campur"
+        )
+        self.assertEqual([r["title"] for r in strict_rows], ["Kost Tebet"])
+        no_pet_rows, _ = filter_and_rank_rows(
+            loaded["rows"], area="jakarta-selatan", availability="all", pet="no_pet", quality="worth_it"
+        )
+        self.assertEqual([r["title"] for r in no_pet_rows], ["Kost Penuh"])
 
         # Inline q=lat,lon coordinate parsing
         lat, lon = extract_coords_from_maps_url("https://maps.google.com/maps?q=-6.17144%2C106.78389")
@@ -86,6 +97,8 @@ class TestResourceParserAndRunner(unittest.TestCase):
                 )
             self.assertEqual(res["kind"], "resource")
             self.assertEqual(res["detail_count"], 1)
+            self.assertEqual(res["files"]["detail_json"], "resource_detail_latest.json")
+            self.assertEqual(res["files"]["csv"], "resource_hasil_latest.csv")
             self.assertTrue((out_dir / "resources" / res["files"]["detail_json"]).exists())
             self.assertTrue((out_dir / "resources" / res["files"]["csv"]).exists())
 

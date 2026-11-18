@@ -118,6 +118,26 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
   const srv = await startTestServer(tmp, "complete");
   t.after(() => srv.close());
 
+  const createdRes = await fetch(`${srv.baseUrl}/api/resources/jobs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: "https://docs.google.com/spreadsheets/d/1VwTJymN8n-h3CZwAuFu5kdNdwsUvZBoRuBOVDAZl7Jc/edit?gid=0",
+      area: "jakarta-selatan",
+      priceCategory: "murah",
+      availability: "strict_available",
+      quality: "worth_it",
+      gender: "campur",
+      pet: "pet_friendly",
+      keepHistory: false,
+    }),
+  });
+  assert.equal(createdRes.status, 201);
+  const { job: resJob } = await createdRes.json();
+  assert.equal(resJob.options.priceCategory, "murah");
+  assert.equal(resJob.options.availability, "strict_available");
+  assert.equal(resJob.options.keepHistory, false);
+
   const created = await fetch(`${srv.baseUrl}/api/jobs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

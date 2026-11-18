@@ -9,6 +9,7 @@ import {
 import type {
   FilterState,
   KosItem,
+  ResourceInspectPayload,
   ResourceInspectStats,
   ResourceJobOptions,
   ResultFile,
@@ -47,12 +48,7 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
     };
   }, []);
 
-  const inspectUrl = async (payload: {
-    url: string;
-    area: string;
-    maxPrice: number | null;
-    keywords: string[];
-  }) => {
+  const inspectUrl = async (payload: ResourceInspectPayload) => {
     setErrorMsg(null);
     setInspecting(true);
     try {

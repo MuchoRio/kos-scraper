@@ -50,6 +50,7 @@ export function ScrapeFormCard({
       geocode: settings.enableGeo,
       gmaps: settings.enableGmaps,
       maskContact: maskContactDefault,
+      keepHistory: settings.keepHistory,
       refLat: settings.enableGeo && activeLandmark ? activeLandmark.lat : null,
       refLon: settings.enableGeo && activeLandmark ? activeLandmark.lon : null,
     });
@@ -161,8 +162,9 @@ export function ScrapeFormCard({
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
         <span>
           Acuan: <strong>{settings.enableGeo && activeLandmark ? activeLandmark.label : "Nonaktif"}</strong>
-          {" · "}Maps Anti-Scam: <strong>{settings.enableGmaps ? "Aktif" : "Mati"}</strong>
-          {" · "}Parallel: <strong>{settings.concurrency} thread</strong>
+          {" · "}Maps: <strong>{settings.enableGmaps ? "Aktif" : "Mati"}</strong>
+          {" · "}Workers: <strong>{settings.concurrency}</strong>
+          {" · "}File: <strong>{settings.keepHistory ? "Arsip baru" : "Timpa terbaru"}</strong>
         </span>
         <button
           type="button"

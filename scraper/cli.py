@@ -28,6 +28,21 @@ def _add_common_flags(sp: argparse.ArgumentParser, default_pages: int) -> None:
     sp.add_argument("--progress-jsonl", action="store_true")
 
 
+def _add_resource_filter_flags(sp: argparse.ArgumentParser) -> None:
+    sp.add_argument("--url", required=True)
+    sp.add_argument("--area", default="jakarta-selatan")
+    sp.add_argument("--max-price", type=int, default=None)
+    sp.add_argument("--keyword", default="")
+    sp.add_argument("--only-available", action="store_true")
+    sp.add_argument("--include-unpriced", action="store_true")
+    sp.add_argument("--no-dedup", action="store_true")
+    sp.add_argument("--price-category", default="all", choices=["all", "murah", "middle", "premium"])
+    sp.add_argument("--availability", default="available_or_unknown", choices=["available_or_unknown", "strict_available", "all"])
+    sp.add_argument("--quality", default="all", choices=["all", "curated", "top", "worth_it", "best_deal", "standar"])
+    sp.add_argument("--gender", default="all", choices=["all", "campur", "wanita", "pria", "bebas"])
+    sp.add_argument("--pet", default="all", choices=["all", "pet_friendly", "no_pet"])
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Multi-source Indonesian kos scraper CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -57,29 +72,22 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     hp.add_argument("--ref-lat", type=float, default=None)
     hp.add_argument("--ref-lon", type=float, default=None)
     hp.add_argument("--mask-contact", action="store_true")
+    hp.add_argument("--keep-history", action="store_true")
 
     ir = sub.add_parser("inspect-resource")
-    ir.add_argument("--url", required=True)
-    ir.add_argument("--area", default="jakarta-selatan")
-    ir.add_argument("--max-price", type=int, default=None)
-    ir.add_argument("--keyword", default="")
+    _add_resource_filter_flags(ir)
 
     ar = sub.add_parser("analyze-resource")
-    ar.add_argument("--url", required=True)
-    ar.add_argument("--area", default="jakarta-selatan")
-    ar.add_argument("--max-price", type=int, default=None)
-    ar.add_argument("--keyword", default="")
+    _add_resource_filter_flags(ar)
     ar.add_argument("--details", type=int, default=25)
     ar.add_argument("--concurrency", type=int, default=4)
-    ar.add_argument("--only-available", action="store_true")
-    ar.add_argument("--include-unpriced", action="store_true")
-    ar.add_argument("--no-dedup", action="store_true")
     ar.add_argument("--out-dir", default="")
     ar.add_argument("--geocode", action="store_true")
     ar.add_argument("--gmaps", action="store_true")
     ar.add_argument("--ref-lat", type=float, default=None)
     ar.add_argument("--ref-lon", type=float, default=None)
     ar.add_argument("--mask-contact", action="store_true")
+    ar.add_argument("--keep-history", action="store_true")
     ar.add_argument("--progress-jsonl", action="store_true")
     return p.parse_args(argv)
 
@@ -94,7 +102,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "inspect-resource":
         kws_res = [k.strip() for k in args.keyword.split(",") if k.strip()]
-        print(json.dumps(inspect_resource(args.url, area=args.area, max_price=args.max_price, keywords=kws_res), ensure_ascii=False))
+        res = inspect_resource(
+            args.url,
+            area=args.area,
+            max_price=args.max_price,
+            keywords=kws_res,
+            only_available=args.only_available or args.availability != "all",
+            deduplicate=not args.no_dedup,
+            include_unpriced=args.include_unpriced or (args.max_price is None),
+            price_category=args.price_category,
+            availability=args.availability,
+            quality=args.quality,
+            gender=args.gender,
+            pet=args.pet,
+        )
+        print(json.dumps(res, ensure_ascii=False))
         return 0
 
     if args.cmd == "analyze-resource":
@@ -106,15 +128,21 @@ def main(argv: list[str] | None = None) -> int:
             max_price=args.max_price,
             keywords=kws_res,
             details_limit=args.details,
-            only_available=args.only_available,
+            only_available=args.only_available or args.availability != "all",
             deduplicate=not args.no_dedup,
             include_unpriced=args.include_unpriced,
+            price_category=args.price_category,
+            availability=args.availability,
+            quality=args.quality,
+            gender=args.gender,
+            pet=args.pet,
             geocode=args.geocode,
             gmaps=args.gmaps,
             ref_lat=args.ref_lat,
             ref_lon=args.ref_lon,
             out_dir=out_dir,
             mask_contact=args.mask_contact,
+            keep_history=args.keep_history,
             concurrency=max(1, min(6, args.concurrency)),
             progress_cb=cb,
         )
@@ -189,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
             ref_lon=args.ref_lon,
             out_dir=out_dir,
             mask_contact=args.mask_contact,
+            keep_history=args.keep_history,
             concurrency=max(1, min(8, args.concurrency)),
             progress_cb=cb,
         )

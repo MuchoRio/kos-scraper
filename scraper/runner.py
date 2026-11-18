@@ -190,6 +190,7 @@ def run_hunt(
     ref_lon: float | None = None,
     out_dir: Path | None = None,
     mask_contact: bool = False,
+    keep_history: bool = False,
     progress_cb: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Full concurrent pipeline: list -> filter -> interleave -> detail -> JSON & CSV."""
@@ -225,13 +226,22 @@ def run_hunt(
     )
 
     output_root = out_dir or (Path(__file__).resolve().parent.parent / "hasil")
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if keep_history:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        list_name, detail_name, csv_name = (
+            f"list_{area}_{stamp}.json",
+            f"detail_{area}_{stamp}.json",
+            f"hasil_kos_{stamp}.csv",
+        )
+    else:
+        list_name, detail_name, csv_name = "list_latest.json", "detail_latest.json", "hasil_kos_latest.csv"
+
     list_path = write_json(
         {"sources": sources, "area": area, "count": len(raw_items), "items": raw_items},
-        output_root / f"list_{area}_{stamp}.json",
+        output_root / list_name,
     )
-    detail_path = write_json(details, output_root / f"detail_{area}_{stamp}.json")
-    csv_path = write_csv(details, output_root / f"hasil_kos_{stamp}.csv", mask_contact=mask_contact)
+    detail_path = write_json(details, output_root / detail_name)
+    csv_path = write_csv(details, output_root / csv_name, mask_contact=mask_contact)
 
     summary = {
         "sources": sources,

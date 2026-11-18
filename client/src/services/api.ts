@@ -3,6 +3,7 @@ import type {
   KosItem,
   LandmarkRef,
   PresetArea,
+  ResourceInspectPayload,
   ResourceInspectStats,
   ResourceJobOptions,
   ResultFile,
@@ -118,12 +119,7 @@ export function fetchResourceFile(filename: string) {
   );
 }
 
-export function inspectResourceUrl(payload: {
-  url: string;
-  area: string;
-  maxPrice: number | null;
-  keywords: string[];
-}) {
+export function inspectResourceUrl(payload: ResourceInspectPayload) {
   return requestJson<{ success: boolean; stats: ResourceInspectStats; samples: KosItem[] }>(
     "/api/resources/inspect",
     {
