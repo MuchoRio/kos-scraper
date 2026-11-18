@@ -130,13 +130,25 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
       gender: "campur",
       pet: "pet_friendly",
       keepHistory: false,
+      storageMode: "merge",
     }),
   });
   assert.equal(createdRes.status, 201);
   const { job: resJob } = await createdRes.json();
   assert.equal(resJob.options.priceCategory, "murah");
   assert.equal(resJob.options.availability, "strict_available");
-  assert.equal(resJob.options.keepHistory, false);
+  assert.equal(resJob.options.storageMode, "merge");
+
+  // File CRUD delete endpoints validate & delete safely
+  fs.writeFileSync(path.join(tmp, "old_test.json"), "[]", "utf8");
+  fs.mkdirSync(path.join(tmp, "resources"), { recursive: true });
+  fs.writeFileSync(path.join(tmp, "resources", "old_res.json"), "[]", "utf8");
+  const delMain = await fetch(`${srv.baseUrl}/api/results/old_test.json`, { method: "DELETE" }).then((r) => r.json());
+  assert.equal(delMain.success, true);
+  assert.equal(fs.existsSync(path.join(tmp, "old_test.json")), false);
+  const delRes = await fetch(`${srv.baseUrl}/api/resources/results/old_res.json`, { method: "DELETE" }).then((r) => r.json());
+  assert.equal(delRes.success, true);
+  assert.equal(fs.existsSync(path.join(tmp, "resources", "old_res.json")), false);
 
   const created = await fetch(`${srv.baseUrl}/api/jobs`, {
     method: "POST",

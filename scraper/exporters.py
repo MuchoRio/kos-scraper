@@ -133,3 +133,29 @@ def write_json(payload: Any, output_path: Path) -> Path:
     )
     return output_path
 
+
+def upsert_items_with_existing(
+    existing_path: Path,
+    new_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge new kos items into an existing JSON result file, deduplicating by url/slug."""
+    if not existing_path.exists():
+        return list(new_items)
+    try:
+        raw = json.loads(existing_path.read_text(encoding="utf-8"))
+        prev = raw if isinstance(raw, list) else raw.get("items", []) if isinstance(raw, dict) else []
+    except (OSError, json.JSONDecodeError):
+        prev = []
+
+    seen: dict[str, dict[str, Any]] = {}
+    ordered_keys: list[str] = []
+    for item in [*new_items, *prev]:
+        if not isinstance(item, dict):
+            continue
+        k = str(item.get("url") or item.get("id_kost") or item.get("slug") or item.get("title") or "")
+        if not k or k in seen:
+            continue
+        seen[k] = item
+        ordered_keys.append(k)
+    return [seen[k] for k in ordered_keys]
+

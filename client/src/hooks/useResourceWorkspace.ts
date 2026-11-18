@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cancelScrapeJob,
+  deleteResourceFile,
   fetchResourceFile,
   fetchResourceResults,
   inspectResourceUrl,
@@ -133,6 +134,22 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
     }
   };
 
+  const deleteHistoryFile = async (filename: string) => {
+    try {
+      const res = await deleteResourceFile(filename);
+      setFiles(res.files);
+      if (activeFile === filename) {
+        const latest = await fetchResourceResults();
+        setFiles(latest.files);
+        setActiveFile(latest.defaultFilename);
+        setItems(latest.items);
+      }
+      notify(`File ${filename} dihapus dari hasil/resources/.`);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Gagal menghapus file resource.");
+    }
+  };
+
   return {
     files,
     activeFile,
@@ -150,6 +167,7 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
     runAnalysis,
     stopJob,
     loadHistoryFile,
+    deleteHistoryFile,
   };
 }
 

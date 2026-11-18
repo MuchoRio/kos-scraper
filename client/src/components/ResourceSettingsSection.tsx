@@ -5,6 +5,7 @@ import type {
   ResourcePetFilter,
   ResourcePriceCategory,
   ResourceQuality,
+  StorageMode,
 } from "../types/kos";
 
 export interface ResourceSettingsValues {
@@ -135,36 +136,31 @@ export function ResourceSettingsSection({ values, onChange }: ResourceSettingsSe
 }
 
 export function StorageModeSection({
-  keepHistory,
+  storageMode,
   onChange,
 }: {
-  keepHistory: boolean;
-  onChange: (next: boolean) => void;
+  storageMode: StorageMode;
+  onChange: (next: StorageMode) => void;
 }) {
   return (
     <section className="space-y-2 border-t border-[var(--border-subtle)] pt-4">
       <div className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
         <HardDrive className="h-3.5 w-3.5 text-[var(--accent)]" />
-        <span>Penyimpanan Folder hasil/</span>
+        <span>Mode Simpan File hasil/ (CRUD Data)</span>
       </div>
-      <label className="flex items-start gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/40 p-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={keepHistory}
-          onChange={(e) => onChange(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
-        />
-        <div>
-          <div className="font-semibold text-[var(--text-primary)]">
-            Buat file arsip timestamp baru setiap proses
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)]">
-            Default <strong>Mati</strong>: selalu menimpa{" "}
-            <code>detail_latest.json</code> / <code>resource_detail_latest.json</code> &amp; CSV terbaru agar
-            folder <code>hasil/</code> tetap bersih dan tidak menumpuk.
-          </div>
-        </div>
-      </label>
+      <select
+        value={storageMode}
+        onChange={(e) => onChange(e.target.value as StorageMode)}
+        className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-2 text-xs font-medium text-[var(--text-primary)]"
+      >
+        <option value="replace">Timpa file terbaru — detail_latest.json (1 file bersih, Default)</option>
+        <option value="merge">Update &amp; Gabung ke file yang ada (CRUD Upsert tanpa duplikat)</option>
+        <option value="archive">Buat file arsip timestamp baru setiap proses</option>
+      </select>
+      <p className="text-[11px] text-[var(--text-muted)]">
+        Mode <strong>Timpa</strong> / <strong>Upsert</strong> menjaga folder <code>hasil/</code> tetap berisi
+        1 file utama. File lama bisa dihapus kapan saja lewat menu <strong>Riwayat</strong>.
+      </p>
     </section>
   );
 }

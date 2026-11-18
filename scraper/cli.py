@@ -73,6 +73,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     hp.add_argument("--ref-lon", type=float, default=None)
     hp.add_argument("--mask-contact", action="store_true")
     hp.add_argument("--keep-history", action="store_true")
+    hp.add_argument("--storage-mode", default="replace", choices=["replace", "merge", "archive"])
 
     ir = sub.add_parser("inspect-resource")
     _add_resource_filter_flags(ir)
@@ -88,6 +89,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ar.add_argument("--ref-lon", type=float, default=None)
     ar.add_argument("--mask-contact", action="store_true")
     ar.add_argument("--keep-history", action="store_true")
+    ar.add_argument("--storage-mode", default="replace", choices=["replace", "merge", "archive"])
     ar.add_argument("--progress-jsonl", action="store_true")
     return p.parse_args(argv)
 
@@ -143,6 +145,7 @@ def main(argv: list[str] | None = None) -> int:
             out_dir=out_dir,
             mask_contact=args.mask_contact,
             keep_history=args.keep_history,
+            storage_mode=args.storage_mode,
             concurrency=max(1, min(6, args.concurrency)),
             progress_cb=cb,
         )
@@ -218,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
             out_dir=out_dir,
             mask_contact=args.mask_contact,
             keep_history=args.keep_history,
+            storage_mode=args.storage_mode,
             concurrency=max(1, min(8, args.concurrency)),
             progress_cb=cb,
         )

@@ -34,6 +34,7 @@ export interface ResourceInspectStats {
   top_kecamatan: [string, number][];
 }
 
+export type StorageMode = "replace" | "merge" | "archive";
 export type ResourcePriceCategory = "all" | "murah" | "middle" | "premium";
 export type ResourceAvailability = "available_or_unknown" | "strict_available" | "all";
 export type ResourceQuality = "all" | "curated" | "top" | "worth_it" | "best_deal" | "standar";
@@ -73,6 +74,7 @@ export interface ResourceJobOptions {
   gmaps: boolean;
   maskContact: boolean;
   keepHistory: boolean;
+  storageMode: StorageMode;
   refLat: number | null;
   refLon: number | null;
 }
@@ -246,6 +248,7 @@ export interface JobOptions {
   gmaps: boolean;
   maskContact: boolean;
   keepHistory?: boolean;
+  storageMode?: StorageMode;
   refLat: number | null;
   refLon: number | null;
   concurrency?: number;

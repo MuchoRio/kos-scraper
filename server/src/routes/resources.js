@@ -82,6 +82,11 @@ function validateResourcePayload(body) {
     gmaps: body.gmaps !== false,
     maskContact: Boolean(body.maskContact),
     keepHistory: Boolean(body.keepHistory),
+    storageMode: ["replace", "merge", "archive"].includes(String(body.storageMode || ""))
+      ? String(body.storageMode)
+      : body.keepHistory
+      ? "archive"
+      : "replace",
     refLat,
     refLon,
   };
@@ -126,6 +131,16 @@ export function createResourcesRouter({ config, queue }) {
     }
     const items = JSON.parse(fs.readFileSync(full, "utf8"));
     res.json({ success: true, filename: safeName, items: Array.isArray(items) ? items : [] });
+  });
+
+  router.delete("/resources/results/:filename", (req, res) => {
+    const safeName = safeResultFilename(req.params.filename);
+    const full = path.join(config.dataDir, "resources", safeName);
+    if (!fs.existsSync(full)) {
+      throw new AppError(`File resource '${safeName}' tidak ditemukan.`, 404);
+    }
+    fs.unlinkSync(full);
+    res.json({ success: true, deleted: safeName, files: listResourceFiles(config.dataDir) });
   });
 
   router.post("/resources/inspect", (req, res) => {

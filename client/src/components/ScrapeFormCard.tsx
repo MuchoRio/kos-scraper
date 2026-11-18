@@ -50,7 +50,8 @@ export function ScrapeFormCard({
       geocode: settings.enableGeo,
       gmaps: settings.enableGmaps,
       maskContact: maskContactDefault,
-      keepHistory: settings.keepHistory,
+      keepHistory: settings.storageMode === "archive",
+      storageMode: settings.storageMode,
       refLat: settings.enableGeo && activeLandmark ? activeLandmark.lat : null,
       refLon: settings.enableGeo && activeLandmark ? activeLandmark.lon : null,
     });
@@ -164,7 +165,14 @@ export function ScrapeFormCard({
           Acuan: <strong>{settings.enableGeo && activeLandmark ? activeLandmark.label : "Nonaktif"}</strong>
           {" · "}Maps: <strong>{settings.enableGmaps ? "Aktif" : "Mati"}</strong>
           {" · "}Workers: <strong>{settings.concurrency}</strong>
-          {" · "}File: <strong>{settings.keepHistory ? "Arsip baru" : "Timpa terbaru"}</strong>
+          {" · "}File:{" "}
+          <strong>
+            {settings.storageMode === "merge"
+              ? "CRUD Upsert"
+              : settings.storageMode === "archive"
+              ? "Arsip baru"
+              : "Timpa terbaru"}
+          </strong>
         </span>
         <button
           type="button"

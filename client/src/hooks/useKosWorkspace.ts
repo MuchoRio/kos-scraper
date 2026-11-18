@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cancelScrapeJob,
+  deleteResultFile,
   downloadFilteredCsv,
   fetchFavorites,
   fetchHealth,
@@ -198,6 +199,22 @@ export function useKosWorkspace() {
 
   const resetFilter = () => setFilter(DEFAULT_FILTER);
 
+  const deleteHistoryFile = async (filename: string) => {
+    try {
+      const res = await deleteResultFile(filename);
+      setFiles(res.files);
+      if (activeFile === filename) {
+        const latest = await fetchInitialResults();
+        setFiles(latest.files);
+        setActiveFile(latest.defaultFilename);
+        setItems(latest.items);
+      }
+      notify(`File ${filename} dihapus dari hasil/.`);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Gagal menghapus file hasil.");
+    }
+  };
+
   return {
     areas,
     landmarks,
@@ -220,6 +237,7 @@ export function useKosWorkspace() {
     runJob,
     stopJob,
     loadHistoryFile,
+    deleteHistoryFile,
     refreshFilesAndDefault,
     toggleFavorite,
     exportCsv,

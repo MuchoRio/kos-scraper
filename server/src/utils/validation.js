@@ -77,6 +77,8 @@ export function validateJobPayload(body) {
   const gmaps = Boolean(body.gmaps);
   const maskContact = Boolean(body.maskContact);
   const keepHistory = Boolean(body.keepHistory);
+  const rawStorage = String(body.storageMode || (keepHistory ? "archive" : "replace")).trim().toLowerCase();
+  const storageMode = ["replace", "merge", "archive"].includes(rawStorage) ? rawStorage : "replace";
   let refLat = null;
   let refLon = null;
   if (body.refLat !== null && body.refLat !== undefined && body.refLat !== "") {
@@ -103,6 +105,7 @@ export function validateJobPayload(body) {
     gmaps,
     maskContact,
     keepHistory,
+    storageMode,
     refLat,
     refLon,
   };

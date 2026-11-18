@@ -10,6 +10,7 @@ interface HistorySavedModalProps {
   favorites: KosItem[];
   onClose: () => void;
   onLoadFile: (filename: string) => void;
+  onDeleteFile?: (filename: string) => void;
   onSelectKos: (item: KosItem) => void;
   onToggleFavorite: (item: KosItem) => void;
 }
@@ -21,6 +22,7 @@ export function HistorySavedModal({
   favorites,
   onClose,
   onLoadFile,
+  onDeleteFile,
   onSelectKos,
   onToggleFavorite,
 }: HistorySavedModalProps) {
@@ -66,32 +68,47 @@ export function HistorySavedModal({
               <p className="text-sm text-[var(--text-muted)]">Belum ada arsip JSON di folder hasil/.</p>
             ) : (
               jsonFiles.map((file) => (
-                <button
+                <div
                   key={file.name}
-                  type="button"
-                  onClick={() => {
-                    onLoadFile(file.name);
-                    onClose();
-                  }}
-                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors cursor-pointer ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 transition-colors ${
                     activeFile === file.name
                       ? "border-[var(--accent)] bg-[var(--accent-soft)]/50"
                       : "border-[var(--border-subtle)] hover:bg-[var(--bg-subtle)]"
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileJson className="h-4 w-4 text-[var(--accent)] shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold font-mono-tabular truncate">{file.name}</div>
-                      <div className="text-xs text-[var(--text-muted)]">
-                        {new Date(file.modifiedAt).toLocaleString("id-ID")}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLoadFile(file.name);
+                      onClose();
+                    }}
+                    className="flex flex-1 min-w-0 items-center justify-between gap-3 text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileJson className="h-4 w-4 text-[var(--accent)] shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold font-mono-tabular truncate">{file.name}</div>
+                        <div className="text-xs text-[var(--text-muted)]">
+                          {new Date(file.modifiedAt).toLocaleString("id-ID")}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <span className="text-xs font-mono-tabular text-[var(--text-muted)] whitespace-nowrap shrink-0">
-                    {formatBytes(file.sizeBytes)}
-                  </span>
-                </button>
+                    <span className="text-xs font-mono-tabular text-[var(--text-muted)] whitespace-nowrap shrink-0">
+                      {formatBytes(file.sizeBytes)}
+                    </span>
+                  </button>
+                  {onDeleteFile && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteFile(file.name)}
+                      aria-label={`Hapus file ${file.name}`}
+                      title="Hapus file arsip ini"
+                      className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-500/10 cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               ))
             )
           ) : favorites.length === 0 ? (

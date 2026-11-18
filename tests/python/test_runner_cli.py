@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import pathlib
 import subprocess
 import sys
@@ -10,6 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from scraper.exporters import upsert_items_with_existing
 from scraper.runner import run_hunt
 
 FIXTURES = pathlib.Path(__file__).resolve().parents[1] / "fixtures"
@@ -59,6 +61,16 @@ class TestRunnerPipeline(unittest.TestCase):
                 run_hunt(sources=["sewakost", "rukita"], area="jakarta-selatan", max_price=3000000, max_pages=1, keywords=["cipete"], details_limit=2, out_dir=out_dir)
             json_csv = sorted(p.name for p in out_dir.iterdir() if p.is_file())
             self.assertEqual(json_csv, ["detail_latest.json", "hasil_kos_latest.csv", "list_latest.json"])
+
+            # Upsert merge keeps prior distinct items and updates matching URL in place
+            existing_detail = out_dir / "detail_latest.json"
+            existing_rows = json.loads(existing_detail.read_text(encoding="utf-8"))
+            merged = upsert_items_with_existing(existing_detail, [
+                {"url": existing_rows[0]["url"], "title": "Updated Kos Name", "price": 990000},
+                {"url": "https://example.com/kos-baru", "title": "Kos Baru Tebet", "price": 1100000},
+            ])
+            self.assertEqual(len(merged), len(existing_rows) + 1)
+            self.assertEqual(merged[0]["title"], "Updated Kos Name")
 
     def test_cli_help_executes_cleanly(self) -> None:
         res = subprocess.run(

@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 from .adapters import get_adapter
 from .attributes import extract_kos_attributes
-from .exporters import write_csv, write_json
+from .exporters import upsert_items_with_existing, write_csv, write_json
 from .fraud_detector import assess_scam_risk
 from .geo import Geocoder, haversine_km
 from .gmaps import GoogleMapsEnricher
@@ -154,6 +154,7 @@ def run_resource_analysis(
     out_dir: Path | None = None,
     mask_contact: bool = False,
     keep_history: bool = False,
+    storage_mode: str = "replace",
     progress_cb: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Analyze & enrich curated Google Sheet / Doc rows cleanly isolated from web scrapes."""
@@ -211,24 +212,28 @@ def run_resource_analysis(
     enriched = [r for r in results if r is not None]
     root_out = (out_dir or (Path(__file__).resolve().parent.parent / "hasil")) / "resources"
     root_out.mkdir(parents=True, exist_ok=True)
-    if keep_history:
+    mode = "archive" if keep_history else (storage_mode if storage_mode in {"replace", "merge", "archive"} else "replace")
+    if mode == "archive":
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         detail_name, csv_name = f"resource_detail_{area}_{stamp}.json", f"resource_hasil_{stamp}.csv"
     else:
         detail_name, csv_name = "resource_detail_latest.json", "resource_hasil_latest.csv"
-    detail_path = write_json(enriched, root_out / detail_name)
-    csv_path = write_csv(enriched, root_out / csv_name, mask_contact=mask_contact)
+
+    final_items = upsert_items_with_existing(root_out / detail_name, enriched) if mode == "merge" else enriched
+    detail_path = write_json(final_items, root_out / detail_name)
+    csv_path = write_csv(final_items, root_out / csv_name, mask_contact=mask_contact)
 
     summary = {
         "kind": "resource",
         "area": area,
+        "storage_mode": mode,
         "total_rows": stats["total_rows"],
         "filtered_count": len(filtered),
         "duplicates_removed": dups,
-        "detail_count": len(enriched),
+        "detail_count": len(final_items),
         "stats": stats,
         "files": {"detail_json": detail_path.name, "csv": csv_path.name},
-        "items": enriched,
+        "items": final_items,
     }
     emit({"type": "done", "summary": {k: v for k, v in summary.items() if k != "items"}})
     return summary

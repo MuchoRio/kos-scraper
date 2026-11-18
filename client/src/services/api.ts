@@ -49,6 +49,13 @@ export function fetchResultFile(filename: string) {
   );
 }
 
+export function deleteResultFile(filename: string) {
+  return requestJson<{ success: boolean; deleted: string; files: ResultFile[] }>(
+    `/api/results/${encodeURIComponent(filename)}`,
+    { method: "DELETE" }
+  );
+}
+
 export function fetchFavorites() {
   return requestJson<{ success: boolean; items: KosItem[] }>("/api/favorites");
 }
@@ -116,6 +123,13 @@ export function fetchResourceResults() {
 export function fetchResourceFile(filename: string) {
   return requestJson<{ success: boolean; filename: string; items: KosItem[] }>(
     `/api/resources/results/${encodeURIComponent(filename)}`
+  );
+}
+
+export function deleteResourceFile(filename: string) {
+  return requestJson<{ success: boolean; deleted: string; files: ResultFile[] }>(
+    `/api/resources/results/${encodeURIComponent(filename)}`,
+    { method: "DELETE" }
   );
 }
 

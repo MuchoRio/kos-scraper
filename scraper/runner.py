@@ -10,7 +10,7 @@ from typing import Any, Callable
 
 from .adapters import get_adapter
 from .attributes import extract_kos_attributes
-from .exporters import write_csv, write_json
+from .exporters import upsert_items_with_existing, write_csv, write_json
 from .fraud_detector import assess_scam_risk
 from .geo import Geocoder
 from .gmaps import GoogleMapsEnricher
@@ -191,6 +191,7 @@ def run_hunt(
     out_dir: Path | None = None,
     mask_contact: bool = False,
     keep_history: bool = False,
+    storage_mode: str = "replace",
     progress_cb: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Full concurrent pipeline: list -> filter -> interleave -> detail -> JSON & CSV."""
@@ -226,7 +227,8 @@ def run_hunt(
     )
 
     output_root = out_dir or (Path(__file__).resolve().parent.parent / "hasil")
-    if keep_history:
+    mode = "archive" if keep_history else (storage_mode if storage_mode in {"replace", "merge", "archive"} else "replace")
+    if mode == "archive":
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         list_name, detail_name, csv_name = (
             f"list_{area}_{stamp}.json",
@@ -236,25 +238,29 @@ def run_hunt(
     else:
         list_name, detail_name, csv_name = "list_latest.json", "detail_latest.json", "hasil_kos_latest.csv"
 
+    raw_to_save = upsert_items_with_existing(output_root / list_name, raw_items) if mode == "merge" else raw_items
+    details_to_save = upsert_items_with_existing(output_root / detail_name, details) if mode == "merge" else details
+
     list_path = write_json(
-        {"sources": sources, "area": area, "count": len(raw_items), "items": raw_items},
+        {"sources": sources, "area": area, "count": len(raw_to_save), "items": raw_to_save},
         output_root / list_name,
     )
-    detail_path = write_json(details, output_root / detail_name)
-    csv_path = write_csv(details, output_root / csv_name, mask_contact=mask_contact)
+    detail_path = write_json(details_to_save, output_root / detail_name)
+    csv_path = write_csv(details_to_save, output_root / csv_name, mask_contact=mask_contact)
 
     summary = {
         "sources": sources,
         "area": area,
+        "storage_mode": mode,
         "list_count": len(raw_items),
         "matched_count": len(matched),
-        "detail_count": len(details),
+        "detail_count": len(details_to_save),
         "files": {
             "list_json": list_path.name,
             "detail_json": detail_path.name,
             "csv": csv_path.name,
         },
-        "items": details,
+        "items": details_to_save,
     }
     if progress_cb:
         progress_cb({"type": "done", "summary": {k: v for k, v in summary.items() if k != "items"}})

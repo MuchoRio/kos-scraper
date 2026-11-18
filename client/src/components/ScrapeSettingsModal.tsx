@@ -1,7 +1,7 @@
 import { FileSpreadsheet, Globe, Settings2, ShieldAlert, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SOURCE_OPTIONS } from "../constants/sources";
-import type { LandmarkRef, SourceId, WorkspaceMode } from "../types/kos";
+import type { LandmarkRef, SourceId, StorageMode, WorkspaceMode } from "../types/kos";
 import {
   ResourceSettingsSection,
   StorageModeSection,
@@ -15,7 +15,7 @@ export interface ScrapeSettingsState extends ResourceSettingsValues {
   landmarkId: string;
   enableGeo: boolean;
   enableGmaps: boolean;
-  keepHistory: boolean;
+  storageMode: StorageMode;
 }
 
 interface ScrapeSettingsModalProps {
@@ -262,8 +262,8 @@ export function ScrapeSettingsModal({
           )}
 
           <StorageModeSection
-            keepHistory={settings.keepHistory}
-            onChange={(keepHistory) => onChange({ ...settings, keepHistory })}
+            storageMode={settings.storageMode}
+            onChange={(storageMode) => onChange({ ...settings, storageMode })}
           />
         </div>
 

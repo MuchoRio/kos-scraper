@@ -30,7 +30,6 @@ interface BentoTopBarProps {
   onOpenSettings: () => void;
   onExportCsv: () => void;
   canExport: boolean;
-  activeFile: string | null;
 }
 
 export function BentoTopBar({
@@ -48,7 +47,6 @@ export function BentoTopBar({
   onOpenSettings,
   onExportCsv,
   canExport,
-  activeFile,
 }: BentoTopBarProps) {
   return (
     <header className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 shadow-sm">
@@ -58,16 +56,9 @@ export function BentoTopBar({
             <Home className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)] whitespace-nowrap">
-                KosHunt Studio
-              </h1>
-              {activeFile && (
-                <span className="hidden sm:inline-flex items-center rounded-full bg-[var(--bg-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--text-muted)] font-mono-tabular whitespace-nowrap shrink-0">
-                  {activeFile}
-                </span>
-              )}
-            </div>
+            <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)] whitespace-nowrap">
+              KosHunt Studio
+            </h1>
             <p className="text-xs text-[var(--text-muted)] truncate">
               Scraper multi-sumber & kurasi pencarian kos
             </p>

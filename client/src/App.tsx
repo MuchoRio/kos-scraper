@@ -1,5 +1,5 @@
 import { AlertCircle, SearchX, X } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { BentoKpiRow } from "./components/BentoKpiRow";
 import { BentoTopBar } from "./components/BentoTopBar";
 import { DetailDrawer } from "./components/DetailDrawer";
@@ -8,6 +8,7 @@ import { HistorySavedModal } from "./components/HistorySavedModal";
 import { ListingBentoCard } from "./components/ListingBentoCard";
 import { ListingTable } from "./components/ListingTable";
 import { LiveFilterBar } from "./components/LiveFilterBar";
+import { PAGE_SIZE, PaginationBar } from "./components/PaginationBar";
 import { ResourceAnalyzerCard } from "./components/ResourceAnalyzerCard";
 import { ScrapeFormCard } from "./components/ScrapeFormCard";
 import { ScrapeSettingsModal, type ScrapeSettingsState } from "./components/ScrapeSettingsModal";
@@ -38,7 +39,7 @@ export function App() {
     landmarkId: "bank-mega",
     enableGeo: true,
     enableGmaps: true,
-    keepHistory: false,
+    storageMode: "replace",
     resourcePriceCategory: "all",
     resourceAvailability: "available_or_unknown",
     resourceQuality: "all",
@@ -57,6 +58,23 @@ export function App() {
     () => filterAndSortItems(deferredItems, deferredFilter),
     [deferredItems, deferredFilter]
   );
+
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [workspaceMode, activeWs.activeFile, activeWs.filter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedItems = useMemo(
+    () => filteredItems.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filteredItems, safePage]
+  );
+
+  const handlePageChange = (nextPage: number) => {
+    setCurrentPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const savedUrls = useMemo(
     () => new Set(ws.favorites.map((f) => f.url)),
@@ -84,7 +102,6 @@ export function App() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onExportCsv={() => ws.exportCsv(filteredItems, maskContact)}
           canExport={filteredItems.length > 0}
-          activeFile={activeWs.activeFile}
         />
 
         {activeWs.errorMsg && (
@@ -173,27 +190,37 @@ export function App() {
               </button>
             )}
           </div>
-        ) : viewMode === "bento" ? (
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredItems.map((item) => (
-              <ListingBentoCard
-                key={item.url}
-                item={item}
-                isSaved={savedUrls.has(item.url)}
+        ) : (
+          <div className="space-y-4">
+            {viewMode === "bento" ? (
+              <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {pagedItems.map((item) => (
+                  <ListingBentoCard
+                    key={item.url}
+                    item={item}
+                    isSaved={savedUrls.has(item.url)}
+                    maskContact={maskContact}
+                    onSelect={setSelectedKos}
+                    onToggleFavorite={ws.toggleFavorite}
+                  />
+                ))}
+              </section>
+            ) : (
+              <ListingTable
+                items={pagedItems}
+                savedUrls={savedUrls}
                 maskContact={maskContact}
                 onSelect={setSelectedKos}
                 onToggleFavorite={ws.toggleFavorite}
               />
-            ))}
-          </section>
-        ) : (
-          <ListingTable
-            items={filteredItems}
-            savedUrls={savedUrls}
-            maskContact={maskContact}
-            onSelect={setSelectedKos}
-            onToggleFavorite={ws.toggleFavorite}
-          />
+            )}
+            <PaginationBar
+              page={safePage}
+              totalItems={filteredItems.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={handlePageChange}
+            />
+          </div>
         )}
       </main>
 
@@ -212,6 +239,7 @@ export function App() {
         favorites={ws.favorites}
         onClose={() => setModalMode(null)}
         onLoadFile={activeWs.loadHistoryFile}
+        onDeleteFile={activeWs.deleteHistoryFile}
         onSelectKos={setSelectedKos}
         onToggleFavorite={ws.toggleFavorite}
       />

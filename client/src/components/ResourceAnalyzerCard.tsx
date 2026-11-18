@@ -89,7 +89,8 @@ export function ResourceAnalyzerCard({
       geocode: settings.enableGeo,
       gmaps: settings.enableGmaps,
       maskContact: maskContactDefault,
-      keepHistory: settings.keepHistory,
+      keepHistory: settings.storageMode === "archive",
+      storageMode: settings.storageMode,
       refLat: settings.enableGeo && activeLandmark ? activeLandmark.lat : null,
       refLon: settings.enableGeo && activeLandmark ? activeLandmark.lon : null,
     });
@@ -226,7 +227,14 @@ export function ResourceAnalyzerCard({
           {settings.resourceQuality !== "all" && <> · Kualitas: <strong>{settings.resourceQuality}</strong></>}
           {settings.resourceGender !== "all" && <> · Gender: <strong>{settings.resourceGender}</strong></>}
           {settings.resourcePet !== "all" && <> · Pet: <strong>{settings.resourcePet}</strong></>}
-          {" · "}File: <strong>{settings.keepHistory ? "Arsip timestamp" : "Timpa terbaru"}</strong>
+          {" · "}File:{" "}
+          <strong>
+            {settings.storageMode === "merge"
+              ? "CRUD Upsert"
+              : settings.storageMode === "archive"
+              ? "Arsip baru"
+              : "Timpa terbaru"}
+          </strong>
         </span>
         <button
           type="button"

@@ -24,6 +24,11 @@ export function createResultsRouter({ store }) {
     return res.json({ success: true, filename: result.filename, items: result.items });
   });
 
+  router.delete("/results/:filename", (req, res) => {
+    const deleted = store.deleteResultFile(req.params.filename);
+    return res.json({ success: true, deleted, files: store.listResultFiles() });
+  });
+
   return router;
 }
 

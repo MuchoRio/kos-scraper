@@ -75,6 +75,19 @@ export class DataStore {
     return { filename: null, type: "json", items: [] };
   }
 
+  deleteResultFile(filename) {
+    const safeName = safeResultFilename(filename);
+    if (["favorites.json", "jobs_state.json"].includes(safeName)) {
+      throw new AppError("File sistem internal tidak dapat dihapus.", 400);
+    }
+    const full = path.join(this.dataDir, safeName);
+    if (!fs.existsSync(full)) {
+      throw new AppError(`File hasil '${safeName}' tidak ditemukan.`, 404);
+    }
+    fs.unlinkSync(full);
+    return safeName;
+  }
+
   readFavorites() {
     this.ensureDir();
     const favPath = path.join(this.dataDir, "favorites.json");
