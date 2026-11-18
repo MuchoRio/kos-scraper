@@ -71,10 +71,13 @@ export function ListingBentoCard({
           {item.jenis}
         </span>
       )}
-      {typeof item.gmaps?.rating === "number" && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 px-2 py-0.5 text-xs font-bold font-mono-tabular text-white whitespace-nowrap shrink-0">
+      {(typeof item.gmaps?.rating === "number" || typeof item.source_rating === "number") && (
+        <span
+          title={typeof item.gmaps?.rating === "number" ? "Rating Google Maps" : `Rating ${item.source}`}
+          className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 px-2 py-0.5 text-xs font-bold font-mono-tabular text-white whitespace-nowrap shrink-0"
+        >
           <Star className="h-3 w-3 fill-current" />
-          <span>{item.gmaps.rating.toFixed(1)}</span>
+          <span>{(item.gmaps?.rating ?? item.source_rating)!.toFixed(1)}</span>
         </span>
       )}
       {item.scam_risk?.level === "high" && (
@@ -209,6 +212,13 @@ export function ListingBentoCard({
             {item.price_estimate_from_reviews ? (
               <div className="text-xs font-semibold text-[var(--accent-text)] truncate">
                 Est. ulasan: ~{formatIdr(item.price_estimate_from_reviews)}
+              </div>
+            ) : item.promo_label || typeof item.available_room === "number" ? (
+              <div className="text-xs text-[var(--text-muted)] truncate">
+                {item.promo_label ||
+                  (item.available_room === 0
+                    ? "Daftar tunggu"
+                    : `Tersedia ${item.available_room} kamar`)}
               </div>
             ) : (
               <div className="text-xs text-[var(--text-muted)] truncate">

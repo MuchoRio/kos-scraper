@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import re
+import shutil
+import subprocess
+from pathlib import Path
 from typing import Any
 
 import lxml.html
@@ -15,8 +19,61 @@ from .mamikos_parser import (
     clean_text as _clean,
     detect_jenis as _detect_jenis,
     extract_detail_json,
-    fetch_mamikos_browser,
+    map_browser_card,
 )
+
+_MAMIKOS_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "mamikos_browser.mjs"
+
+
+def fetch_mamikos_browser(
+    source_name: str,
+    area: str,
+    max_price: int | None,
+    sort: str,
+    order: str,
+    keywords: list[str] | None,
+    limit: int = 200,
+    max_pages: int = 10,
+) -> list[dict[str, Any]] | None:
+    """Run headless /cari Vuex room discovery via Node + playwright-core without arbitrary 60-item cap."""
+    node_bin = shutil.which("node")
+    if not node_bin or not _MAMIKOS_SCRIPT.exists():
+        return None
+    capped_limit = max(20, min(1000, int(limit or 200)))
+    timeout_s = max(90, min(240, 45 + capped_limit // 2))
+    cmd = [
+        node_bin,
+        str(_MAMIKOS_SCRIPT),
+        "--area",
+        area,
+        "--keywords",
+        ",".join(keywords or []),
+        "--sort",
+        sort,
+        "--order",
+        order,
+        "--limit",
+        str(capped_limit),
+        "--max-pages",
+        str(max(1, min(30, int(max_pages or 6)))),
+        "--timeout",
+        str(timeout_s * 1000),
+    ]
+    if max_price:
+        cmd.extend(["--max-price", str(max_price)])
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s + 15, check=False)
+    except Exception:
+        return None
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None
+    try:
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+    except json.JSONDecodeError:
+        return None
+    if payload.get("status") != "ok":
+        return None
+    return [c for raw in (payload.get("items") or []) if (c := map_browser_card(source_name, raw)) is not None]
 
 _AREA_ALIASES = {
     "jakarta-selatan": "jakarta-selatan",
@@ -131,6 +188,7 @@ class MamikosAdapter(SourceAdapter):
         order: str = "asc",
         html: str | None = None,
         keywords: list[str] | None = None,
+        max_pages: int = 6,
     ) -> tuple[list[dict[str, Any]], bool, str]:
         if html is not None:
             url = self.build_list_url(area=area, page=page)
@@ -141,9 +199,19 @@ class MamikosAdapter(SourceAdapter):
             cache: dict[tuple[Any, ...], list[dict[str, Any]]] = getattr(self, "_browser_cache", {})
             if not hasattr(self, "_browser_cache"):
                 self._browser_cache = cache
-            cache_key = (area, max_price, tuple(keywords or ()), sort, order)
+            target_limit = max(60, min(1000, max(max_pages, page) * 20))
+            cache_key = (area, max_price, tuple(keywords or ()), sort, order, target_limit)
             if cache_key not in cache:
-                browser_items = fetch_mamikos_browser(self.name, area, max_price, sort, order, keywords)
+                browser_items = fetch_mamikos_browser(
+                    self.name,
+                    area,
+                    max_price,
+                    sort,
+                    order,
+                    keywords,
+                    limit=target_limit,
+                    max_pages=max_pages,
+                )
                 if browser_items:
                     cache[cache_key] = browser_items
             if cache_key in cache and cache[cache_key]:

@@ -63,7 +63,9 @@ def scrape_single_source(
 ) -> list[dict[str, Any]]:
     """Fetch paginated listings for one source host within one thread worker."""
     adapter = get_adapter(src_name, client=http)
-    accepts_kw = "keywords" in inspect.signature(adapter.list_page).parameters
+    sig_params = inspect.signature(adapter.list_page).parameters
+    accepts_kw = "keywords" in sig_params
+    accepts_max_pages = "max_pages" in sig_params
     src_items: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
     kw_count = 0
@@ -87,6 +89,8 @@ def scrape_single_source(
             }
             if accepts_kw:
                 kwargs["keywords"] = kws
+            if accepts_max_pages:
+                kwargs["max_pages"] = max_pages
             items, has_next, _ = adapter.list_page(**kwargs)
         except Exception as exc:
             emit({"type": "error", "phase": "list", "source": src_name, "page": page, "error": str(exc)})

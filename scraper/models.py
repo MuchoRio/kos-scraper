@@ -52,6 +52,10 @@ class KosListing:
     image_url: str | None = None
     image_urls: list[str] = field(default_factory=list)
     image_source: str | None = None
+    source_rating: float | None = None
+    source_review_count: int | None = None
+    available_room: int | None = None
+    promo_label: str | None = None
     lat: float | None = None
     lon: float | None = None
     distance_km: float | None = None
@@ -191,7 +195,7 @@ def match_keywords(item: dict[str, Any], keywords: list[str]) -> list[str]:
     """Match keywords case-insensitively across location and title metadata."""
     if not keywords:
         return []
-    fields = ("title", "nama_kost", "slug", "kecamatan", "kelurahan", "alamat", "deskripsi")
+    fields = ("title", "nama_kost", "slug", "jenis", "kecamatan", "kelurahan", "alamat", "deskripsi")
     blob = " ".join(str(item.get(k) or "") for k in fields).lower().replace("-", " ")
     return [kw for kw in keywords if kw.lower() in blob]
 

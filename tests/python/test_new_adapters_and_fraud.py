@@ -185,13 +185,42 @@ class TestNewAdapters(unittest.TestCase):
         ]
         adapter = MamikosAdapter()
         with patch("scraper.adapters.mamikos.fetch_mamikos_browser", return_value=fake_cards) as mock_browser:
-            p1, has_next1, _ = adapter.list_page(area="jakarta-selatan", max_price=1500000, page=1, keywords=["kemang"])
-            p2, has_next2, _ = adapter.list_page(area="jakarta-selatan", max_price=1500000, page=2, keywords=["kemang"])
+            p1, has_next1, _ = adapter.list_page(
+                area="jakarta-selatan", max_price=1500000, page=1, keywords=["kemang"], max_pages=10
+            )
+            p2, has_next2, _ = adapter.list_page(
+                area="jakarta-selatan", max_price=1500000, page=2, keywords=["kemang"], max_pages=10
+            )
             self.assertEqual(mock_browser.call_count, 1)
+            self.assertEqual(mock_browser.call_args.kwargs["limit"], 200)
+            self.assertEqual(mock_browser.call_args.kwargs["max_pages"], 10)
             self.assertEqual(len(p1), 20)
             self.assertTrue(has_next1)
             self.assertEqual(len(p2), 5)
             self.assertFalse(has_next2)
+
+        from scraper.adapters.mamikos_parser import map_browser_card
+        mapped = map_browser_card("mamikos", {
+            "title": "Kost Gotong Royong",
+            "url": "https://mamikos.com/room/kost-gr",
+            "price": 1868000,
+            "gender": "Putri",
+            "subdistrict": "Kebayoran Baru",
+            "address": "Jl. Gandaria Utara Selatan",
+            "rating": 4.8,
+            "review_count": 12,
+            "available_room": 2,
+            "promo_label": "Diskon 57rb",
+            "latitude": -6.256,
+            "longitude": 106.791,
+            "photo_urls": ["https://static.mamikos.com/large.jpg", "https://static.mamikos.com/med.jpg"],
+        })
+        assert mapped is not None
+        self.assertEqual(mapped["alamat"], "Jl. Gandaria Utara Selatan")
+        self.assertEqual(mapped["source_rating"], 4.8)
+        self.assertEqual(mapped["available_room"], 2)
+        self.assertEqual(mapped["promo_label"], "Diskon 57rb")
+        self.assertEqual(len(mapped["image_urls"]), 2)
 
     def test_existing_adapter_upgrades_rules_coords_and_sort(self) -> None:
         from scraper.adapters.rukita import RukitaAdapter

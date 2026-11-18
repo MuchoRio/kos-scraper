@@ -88,6 +88,10 @@ export interface KosItem {
   image_url?: string | null;
   image_urls?: string[];
   image_source?: string | null;
+  source_rating?: number | null;
+  source_review_count?: number | null;
+  available_room?: number | null;
+  promo_label?: string | null;
   lat?: number | null;
   lon?: number | null;
   distance_km?: number | null;

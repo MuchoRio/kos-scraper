@@ -5,16 +5,11 @@ from __future__ import annotations
 import html as html_lib
 import json
 import re
-import shutil
-import subprocess
-from pathlib import Path
 from typing import Any
 
 import lxml.html
 
 from ..models import KosListing, dedup_image_urls, format_idr, parse_price
-
-_MAMIKOS_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "mamikos_browser.mjs"
 
 _GENDER_CODE_MAP = {
     0: "Kost Campur",
@@ -99,6 +94,14 @@ def extract_detail_json(raw_html: str) -> dict[str, Any] | None:
         return None
 
 
+def _clean_rating(val: Any) -> float | None:
+    try:
+        num = float(str(val).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    return round(num, 2) if 0 < num <= 5.0 else None
+
+
 def map_browser_card(source_name: str, raw: dict[str, Any]) -> dict[str, Any] | None:
     url = str(raw.get("url") or "").strip()
     title = clean_text(str(raw.get("title") or ""))
@@ -106,6 +109,14 @@ def map_browser_card(source_name: str, raw: dict[str, Any]) -> dict[str, Any] | 
         return None
     price_val = raw.get("price")
     price = int(price_val) if isinstance(price_val, (int, float)) and price_val >= 100_000 else None
+    subdistrict = _clean_subdistrict(str(raw.get("subdistrict") or raw.get("area_label") or ""))
+    alamat = clean_text(str(raw.get("address") or raw.get("area_label") or "")) or subdistrict
+    raw_photos = raw.get("photo_urls") if isinstance(raw.get("photo_urls"), list) else [raw.get("photo_url")]
+    photos = dedup_image_urls(raw_photos)
+    rev_cnt = raw.get("review_count")
+    avail = raw.get("available_room")
+    raw_promo = clean_text(str(raw.get("promo_label") or ""))
+    promo = None if (not raw_promo or re.fullmatch(r"non[-_\s]*gp", raw_promo, re.I)) else raw_promo
     return {
         "source": source_name,
         "url": url,
@@ -113,55 +124,19 @@ def map_browser_card(source_name: str, raw: dict[str, Any]) -> dict[str, Any] | 
         "title": title,
         "listing_price": price,
         "jenis": map_gender(raw.get("gender")),
-        "kecamatan": _clean_subdistrict(str(raw.get("subdistrict") or raw.get("area_label") or "")),
+        "kecamatan": subdistrict,
+        "alamat": alamat,
         "fasilitas_list": collect_str_list(raw.get("top_facilities"), raw.get("labels")),
-        "image_url": raw.get("photo_url"),
+        "image_url": photos[0] if photos else raw.get("photo_url"),
+        "image_urls": photos,
+        "lat": _clean_coord(raw.get("latitude"), -11.0, 6.0),
+        "lon": _clean_coord(raw.get("longitude"), 95.0, 141.0),
+        "source_rating": _clean_rating(raw.get("rating")),
+        "source_review_count": int(rev_cnt) if isinstance(rev_cnt, int) and rev_cnt >= 0 else None,
+        "available_room": int(avail) if isinstance(avail, int) and avail >= 0 else None,
+        "promo_label": promo,
         "is_featured": bool(raw.get("is_featured")),
     }
-
-
-def fetch_mamikos_browser(
-    source_name: str,
-    area: str,
-    max_price: int | None,
-    sort: str,
-    order: str,
-    keywords: list[str] | None,
-    limit: int = 60,
-) -> list[dict[str, Any]] | None:
-    """Run headless /cari Vuex room discovery via Node + playwright-core."""
-    node_bin = shutil.which("node")
-    if not node_bin or not _MAMIKOS_SCRIPT.exists():
-        return None
-    cmd = [
-        node_bin,
-        str(_MAMIKOS_SCRIPT),
-        "--area",
-        area,
-        "--keywords",
-        ",".join(keywords or []),
-        "--sort",
-        sort,
-        "--order",
-        order,
-        "--limit",
-        str(limit),
-    ]
-    if max_price:
-        cmd.extend(["--max-price", str(max_price)])
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=65, check=False)
-    except Exception:
-        return None
-    if proc.returncode != 0 or not proc.stdout.strip():
-        return None
-    try:
-        payload = json.loads(proc.stdout.strip().splitlines()[-1])
-    except json.JSONDecodeError:
-        return None
-    if payload.get("status") != "ok":
-        return None
-    return [c for raw in (payload.get("items") or []) if (c := map_browser_card(source_name, raw)) is not None]
 
 
 def build_listing_from_detail(
@@ -178,26 +153,32 @@ def build_listing_from_detail(
             photo = card.get("photo_url") or card.get("url") or {}
             if isinstance(photo, dict):
                 raw_imgs.append(photo.get("large") or photo.get("medium") or photo.get("small"))
+    raw_imgs.extend(hint.get("image_urls") or [])
     raw_imgs.append(hint.get("image_url"))
     image_urls = dedup_image_urls(raw_imgs)
 
     title = clean_text(str(detail.get("room_title") or "")) or hint.get("title") or slug.replace("-", " ").title()
     pm = detail.get("price_monthly")
     price = int(pm) if isinstance(pm, (int, float)) and pm >= 100_000 else None
+    parsed_time = parse_price(str(detail.get("price_title_time") or ""))
     if price is None:
-        price = parse_price(str(detail.get("price_title_time") or "")) or hint.get("listing_price")
-    price_options = sorted({p for p in [price, hint.get("listing_price")] if isinstance(p, int) and p >= 100_000})
+        price = parsed_time or hint.get("listing_price")
+    price_options = sorted(
+        {p for p in (price, parsed_time, hint.get("listing_price")) if isinstance(p, int) and p >= 100_000}
+    )
 
     kecamatan = _clean_subdistrict(str(detail.get("area_subdistrict") or "")) or hint.get("kecamatan")
     kota = clean_text(str(detail.get("area_city") or ""))
     raw_addr = clean_text(str(detail.get("address") or ""))
-    alamat = raw_addr or (", ".join(x for x in (kecamatan, kota) if x) or None)
+    alamat = raw_addr or hint.get("alamat") or (", ".join(x for x in (kecamatan, kota) if x) or None)
 
     desc_parts = [
         clean_text(str(detail.get(k) or ""))
         for k in ("description", "remarks", "fac_near_other", "fac_room_other", "fac_share_other")
         if clean_text(str(detail.get(k) or ""))
     ]
+    if detail.get("size"):
+        desc_parts.insert(0, f"Ukuran kamar: {clean_text(str(detail['size']))}")
     facilities = collect_str_list(
         detail.get("fac_room"),
         detail.get("fac_bath"),
@@ -214,6 +195,19 @@ def build_listing_from_detail(
         _collect_booking_rules(detail.get("booking_rules")),
         detail.get("booking_rules") if isinstance(detail.get("booking_rules"), list) else [],
     )
+    source_rating = _clean_rating(detail.get("rating")) or hint.get("source_rating")
+    rev_raw = detail.get("review_count")
+    source_review_count = (
+        int(rev_raw) if isinstance(rev_raw, int) and rev_raw >= 0 else hint.get("source_review_count")
+    )
+    avail_raw = detail.get("available_room")
+    available_room = int(avail_raw) if isinstance(avail_raw, int) and avail_raw >= 0 else hint.get("available_room")
+    promo_obj = detail.get("promotion")
+    promo_text = (
+        clean_text(str(promo_obj.get("title") or promo_obj.get("name") or ""))
+        if isinstance(promo_obj, dict)
+        else ""
+    ) or hint.get("promo_label")
 
     return KosListing(
         source=source_name,
@@ -235,8 +229,12 @@ def build_listing_from_detail(
         peraturan=peraturan,
         image_url=image_urls[0] if image_urls else None,
         image_urls=image_urls,
-        lat=_clean_coord(detail.get("latitude"), -11.0, 6.0),
-        lon=_clean_coord(detail.get("longitude"), 95.0, 141.0),
+        source_rating=source_rating,
+        source_review_count=source_review_count,
+        available_room=available_room,
+        promo_label=promo_text or None,
+        lat=_clean_coord(detail.get("latitude"), -11.0, 6.0) or hint.get("lat"),
+        lon=_clean_coord(detail.get("longitude"), 95.0, 141.0) or hint.get("lon"),
         nama_pemilik=clean_text(str(detail.get("owner_name") or "")) or None,
         is_featured=bool(hint.get("is_featured", False)),
     )
@@ -250,7 +248,7 @@ def build_listing_from_fallback(
     hint: dict[str, Any],
 ) -> KosListing:
     """Fallback parser when detail HTML lacks embedded `detail` JSON or network fails offline."""
-    raw_imgs: list[Any] = [hint.get("image_url")]
+    raw_imgs: list[Any] = [*(hint.get("image_urls") or []), hint.get("image_url")]
     if raw_html:
         doc = lxml.html.fromstring(raw_html)
         h1 = doc.xpath("//h1")
@@ -277,11 +275,17 @@ def build_listing_from_fallback(
         price_source="mamikos_ssr_card" if price else "unavailable",
         jenis=hint.get("jenis"),
         kecamatan=kecamatan,
-        alamat=kecamatan,
+        alamat=hint.get("alamat") or kecamatan,
         fasilitas=(", ".join(facilities)[:400] if facilities else None),
         fasilitas_list=facilities,
         image_url=image_urls[0] if image_urls else None,
         image_urls=image_urls,
+        source_rating=hint.get("source_rating"),
+        source_review_count=hint.get("source_review_count"),
+        available_room=hint.get("available_room"),
+        promo_label=hint.get("promo_label"),
+        lat=hint.get("lat"),
+        lon=hint.get("lon"),
         is_featured=bool(hint.get("is_featured", False)),
     )
 
