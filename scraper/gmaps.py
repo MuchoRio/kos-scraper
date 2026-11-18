@@ -33,16 +33,18 @@ PLACES_FIELD_MASK = ",".join([
 
 
 def build_gmaps_query(item: dict[str, Any]) -> str:
-    """Build clean search query from kost name and neighborhood/city."""
+    """Build clean search query from kost name and neighborhood/city without duplicating words."""
     name = str(item.get("nama_kost") or item.get("title") or item.get("slug") or "").strip()
     area_parts = [
         str(item.get("kelurahan") or "").strip(),
         str(item.get("kecamatan") or "").strip(),
     ]
-    area = ", ".join(p for p in area_parts if p)
+    area = ", ".join(p for p in area_parts if p and p.lower() not in name.lower())
     if not area and item.get("alamat"):
-        area = str(item["alamat"])[:50]
-    parts = [p for p in (name, area, "Jakarta" if "jakarta" not in (area + name).lower() else "") if p]
+        addr = str(item["alamat"])[:60].strip()
+        if addr.lower() not in name.lower():
+            area = addr
+    parts = [p for p in (name, area, "Jakarta" if "jakarta" not in (area + " " + name).lower() else "") if p]
     return " ".join(parts).strip()
 
 
@@ -93,15 +95,21 @@ def fetch_places_api(query: str, api_key: str, timeout: float = 15.0) -> dict[st
     }
 
 
-def fetch_browser_gmaps(query: str, timeout_s: int = 25) -> dict[str, Any]:
+def fetch_browser_gmaps(query: str, timeout_s: int = 25, direct_url: str | None = None) -> dict[str, Any]:
     """Invoke local Chrome via scripts/gmaps_browser.mjs when no API key is configured."""
     node_bin = shutil.which("node")
     script = ROOT_DIR / "scripts" / "gmaps_browser.mjs"
     if not node_bin or not script.exists():
         return {"status": "unavailable", "reason": "Node.js atau gmaps_browser.mjs tidak tersedia", "reviews": []}
 
+    cmd = [node_bin, str(script), "--timeout", str(timeout_s * 1000)]
+    if direct_url and direct_url.startswith("https://www.google.com/maps"):
+        cmd.extend(["--url", direct_url])
+    else:
+        cmd.extend(["--query", query])
+
     res = subprocess.run(
-        [node_bin, str(script), "--query", query, "--timeout", str(timeout_s * 1000)],
+        cmd,
         cwd=str(ROOT_DIR),
         capture_output=True,
         text=True,
@@ -150,8 +158,10 @@ class GoogleMapsEnricher:
             encoding="utf-8",
         )
 
-    def lookup(self, query: str) -> dict[str, Any]:
-        norm_q = re.sub(r"\s+", " ", query.strip().lower())
+    def lookup(self, query: str, direct_url: str | None = None) -> dict[str, Any]:
+        effective_direct = direct_url.strip() if (direct_url and not self.api_key) else None
+        cache_basis = effective_direct.lower() if effective_direct else query.strip().lower()
+        norm_q = re.sub(r"\s+", " ", cache_basis)
         key = f"{'api' if self.api_key else 'web'}:{norm_q}"
         with self._lock:
             if key in self._cache:
@@ -166,7 +176,7 @@ class GoogleMapsEnricher:
                 raw = fetch_places_api(query, self.api_key)
             else:
                 with self._browser_sem:
-                    raw = fetch_browser_gmaps(query)
+                    raw = fetch_browser_gmaps(query, direct_url=effective_direct)
         except urllib.error.HTTPError as exc:
             raw = {"status": "error", "reason": f"Places API HTTP {exc.code}", "reviews": []}
         except Exception as exc:
@@ -181,7 +191,7 @@ class GoogleMapsEnricher:
             "rating": raw.get("rating"),
             "review_count": raw.get("review_count"),
             "limited_view": bool(raw.get("limited_view", False)),
-            "maps_url": raw.get("maps_url"),
+            "maps_url": raw.get("maps_url") or effective_direct,
             "lat": raw.get("lat"),
             "lon": raw.get("lon"),
             "reason": raw.get("reason"),
@@ -198,11 +208,12 @@ class GoogleMapsEnricher:
         record: dict[str, Any],
         ref_lat: float | None = None,
         ref_lon: float | None = None,
+        direct_url: str | None = None,
     ) -> dict[str, Any]:
         query = build_gmaps_query(record)
-        if not query:
+        if not query and not direct_url:
             return record
-        gmaps = self.lookup(query)
+        gmaps = self.lookup(query or "Kos Jakarta", direct_url=direct_url)
         record["gmaps"] = gmaps
         if (record.get("lat") is None or record.get("lon") is None) and gmaps.get("lat") is not None:
             record["lat"] = gmaps["lat"]

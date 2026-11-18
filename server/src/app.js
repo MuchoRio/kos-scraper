@@ -6,6 +6,7 @@ import { createExportRouter } from "./routes/export.js";
 import { createFavoritesRouter } from "./routes/favorites.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createJobsRouter } from "./routes/jobs.js";
+import { createResourcesRouter } from "./routes/resources.js";
 import { createResultsRouter } from "./routes/results.js";
 import { JobQueueManager } from "./services/jobQueue.js";
 import { DataStore } from "./services/store.js";
@@ -29,6 +30,7 @@ export function createApp(config, overrides = {}) {
   const api = express.Router();
   api.use(createHealthRouter({ config }));
   api.use(createJobsRouter({ queue }));
+  api.use(createResourcesRouter({ config, queue }));
   api.use(createResultsRouter({ store }));
   api.use(createFavoritesRouter({ store }));
   api.use(createExportRouter({ queue }));

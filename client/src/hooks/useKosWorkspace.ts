@@ -216,6 +216,7 @@ export function useKosWorkspace() {
     errorMsg,
     setErrorMsg,
     toastMsg,
+    notify,
     runJob,
     stopJob,
     loadHistoryFile,

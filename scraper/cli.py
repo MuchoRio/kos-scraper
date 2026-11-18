@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .resource_runner import inspect_resource, run_resource_analysis
 from .runner import enrich_details, run_hunt, scrape_listings
 
 
@@ -56,6 +57,30 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     hp.add_argument("--ref-lat", type=float, default=None)
     hp.add_argument("--ref-lon", type=float, default=None)
     hp.add_argument("--mask-contact", action="store_true")
+
+    ir = sub.add_parser("inspect-resource")
+    ir.add_argument("--url", required=True)
+    ir.add_argument("--area", default="jakarta-selatan")
+    ir.add_argument("--max-price", type=int, default=None)
+    ir.add_argument("--keyword", default="")
+
+    ar = sub.add_parser("analyze-resource")
+    ar.add_argument("--url", required=True)
+    ar.add_argument("--area", default="jakarta-selatan")
+    ar.add_argument("--max-price", type=int, default=None)
+    ar.add_argument("--keyword", default="")
+    ar.add_argument("--details", type=int, default=25)
+    ar.add_argument("--concurrency", type=int, default=4)
+    ar.add_argument("--only-available", action="store_true")
+    ar.add_argument("--include-unpriced", action="store_true")
+    ar.add_argument("--no-dedup", action="store_true")
+    ar.add_argument("--out-dir", default="")
+    ar.add_argument("--geocode", action="store_true")
+    ar.add_argument("--gmaps", action="store_true")
+    ar.add_argument("--ref-lat", type=float, default=None)
+    ar.add_argument("--ref-lon", type=float, default=None)
+    ar.add_argument("--mask-contact", action="store_true")
+    ar.add_argument("--progress-jsonl", action="store_true")
     return p.parse_args(argv)
 
 
@@ -66,6 +91,35 @@ def main(argv: list[str] | None = None) -> int:
     def cb(ev: dict[str, Any]) -> None:
         if use_jsonl:
             print(json.dumps(ev, ensure_ascii=False), file=sys.stderr, flush=True)
+
+    if args.cmd == "inspect-resource":
+        kws_res = [k.strip() for k in args.keyword.split(",") if k.strip()]
+        print(json.dumps(inspect_resource(args.url, area=args.area, max_price=args.max_price, keywords=kws_res), ensure_ascii=False))
+        return 0
+
+    if args.cmd == "analyze-resource":
+        out_dir = Path(args.out_dir).resolve() if args.out_dir else None
+        kws_res = [k.strip() for k in args.keyword.split(",") if k.strip()]
+        summary = run_resource_analysis(
+            url=args.url,
+            area=args.area,
+            max_price=args.max_price,
+            keywords=kws_res,
+            details_limit=args.details,
+            only_available=args.only_available,
+            deduplicate=not args.no_dedup,
+            include_unpriced=args.include_unpriced,
+            geocode=args.geocode,
+            gmaps=args.gmaps,
+            ref_lat=args.ref_lat,
+            ref_lon=args.ref_lon,
+            out_dir=out_dir,
+            mask_contact=args.mask_contact,
+            concurrency=max(1, min(6, args.concurrency)),
+            progress_cb=cb,
+        )
+        print(json.dumps(summary, ensure_ascii=False, indent=1))
+        return 0
 
     if args.cmd == "detail":
         cands = [{"url": u, "source": args.source or None} for u in args.urls]

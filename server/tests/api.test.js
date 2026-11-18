@@ -97,6 +97,17 @@ test("API health, presets, and validation reject unsafe payloads with JSON", asy
 
   const traversal = await fetch(`${srv.baseUrl}/api/results/..%2Fpackage.json`);
   assert.equal(traversal.status, 400);
+
+  const badResource = await fetch(`${srv.baseUrl}/api/resources/inspect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: "https://example.com/not-google" }),
+  });
+  assert.equal(badResource.status, 400);
+
+  const resList = await fetch(`${srv.baseUrl}/api/resources/results`).then((r) => r.json());
+  assert.equal(resList.success, true);
+  assert.equal(Array.isArray(resList.items), true);
   const travBody = await traversal.json();
   assert.equal(travBody.success, false);
 });

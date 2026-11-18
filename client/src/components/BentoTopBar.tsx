@@ -3,6 +3,8 @@ import {
   Download,
   Eye,
   EyeOff,
+  FileSpreadsheet,
+  Globe,
   History,
   Home,
   LayoutGrid,
@@ -11,9 +13,11 @@ import {
   Sun,
   Table2,
 } from "lucide-react";
-import type { ThemePreference, ViewMode } from "../types/kos";
+import type { ThemePreference, ViewMode, WorkspaceMode } from "../types/kos";
 
 interface BentoTopBarProps {
+  workspaceMode: WorkspaceMode;
+  onChangeWorkspaceMode: (mode: WorkspaceMode) => void;
   theme: ThemePreference;
   onToggleTheme: () => void;
   viewMode: ViewMode;
@@ -30,6 +34,8 @@ interface BentoTopBarProps {
 }
 
 export function BentoTopBar({
+  workspaceMode,
+  onChangeWorkspaceMode,
   theme,
   onToggleTheme,
   viewMode,
@@ -69,6 +75,33 @@ export function BentoTopBar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-1">
+            <button
+              type="button"
+              onClick={() => onChangeWorkspaceMode("scrape")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                workspaceMode === "scrape"
+                  ? "bg-[var(--bg-card)] text-[var(--accent-text)] shadow-sm"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              <span>Scraper Web</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeWorkspaceMode("resource")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                workspaceMode === "resource"
+                  ? "bg-[var(--bg-card)] text-[var(--accent-text)] shadow-sm"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span>Riset Sheet &amp; Doc</span>
+            </button>
+          </div>
+
           <div className="inline-flex rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-1">
             <button
               type="button"

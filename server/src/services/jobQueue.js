@@ -121,8 +121,12 @@ export class JobQueueManager {
     this.activeJobId = job.id;
     job.status = "running";
     job.updatedAt = new Date().toISOString();
-    job.progress = { phase: "starting", current: 0, total: 0, message: "Menjalankan scraper engine..." };
-    this._pushLog(job, `Memulai scrape: ${job.options.sources.join(", ")} (${job.options.area})`);
+    job.progress = { phase: "starting", current: 0, total: 0, message: "Menjalankan engine..." };
+    const startMsg =
+      job.options.kind === "resource"
+        ? `Memulai riset direktori: ${job.options.area} (target ${job.options.detailsLimit})`
+        : `Memulai scrape: ${job.options.sources.join(", ")} (${job.options.area})`;
+    this._pushLog(job, startMsg);
     this._broadcast(job.id, "status", this._publicJob(job));
 
     const args = buildPythonArgs(this.rootDir, this.store.dataDir, job.options);

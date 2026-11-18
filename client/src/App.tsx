@@ -8,19 +8,23 @@ import { HistorySavedModal } from "./components/HistorySavedModal";
 import { ListingBentoCard } from "./components/ListingBentoCard";
 import { ListingTable } from "./components/ListingTable";
 import { LiveFilterBar } from "./components/LiveFilterBar";
+import { ResourceAnalyzerCard } from "./components/ResourceAnalyzerCard";
 import { ScrapeFormCard } from "./components/ScrapeFormCard";
 import { ScrapeSettingsModal, type ScrapeSettingsState } from "./components/ScrapeSettingsModal";
 import { TelemetryCard } from "./components/TelemetryCard";
 import { DEFAULT_SOURCES } from "./constants/sources";
 import { useKosWorkspace } from "./hooks/useKosWorkspace";
+import { useResourceWorkspace } from "./hooks/useResourceWorkspace";
 import { useTheme } from "./hooks/useTheme";
-import type { KosItem, ViewMode } from "./types/kos";
+import type { KosItem, ViewMode, WorkspaceMode } from "./types/kos";
 import { filterAndSortItems } from "./utils/formatters";
 import { extractUniqueKecamatan } from "./utils/kosAttributes";
 
 export function App() {
   const { theme, toggleTheme } = useTheme();
   const ws = useKosWorkspace();
+  const resWs = useResourceWorkspace(ws.mapsApiKey, ws.notify);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("scrape");
   const [viewMode, setViewMode] = useState<ViewMode>("bento");
   const [maskContact, setMaskContact] = useState(true);
   const [selectedKos, setSelectedKos] = useState<KosItem | null>(null);
@@ -36,9 +40,10 @@ export function App() {
     enableGmaps: true,
   });
 
-  const deferredFilter = useDeferredValue(ws.filter);
-  const deferredItems = useDeferredValue(ws.items);
-  const kecamatanOptions = useMemo(() => extractUniqueKecamatan(ws.items), [ws.items]);
+  const activeWs = workspaceMode === "resource" ? resWs : ws;
+  const deferredFilter = useDeferredValue(activeWs.filter);
+  const deferredItems = useDeferredValue(activeWs.items);
+  const kecamatanOptions = useMemo(() => extractUniqueKecamatan(activeWs.items), [activeWs.items]);
 
   const filteredItems = useMemo(
     () => filterAndSortItems(deferredItems, deferredFilter),
@@ -51,12 +56,14 @@ export function App() {
   );
 
   const isJobRunning =
-    ws.activeJob?.status === "running" || ws.activeJob?.status === "queued";
+    activeWs.activeJob?.status === "running" || activeWs.activeJob?.status === "queued";
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6 space-y-4">
         <BentoTopBar
+          workspaceMode={workspaceMode}
+          onChangeWorkspaceMode={setWorkspaceMode}
           theme={theme}
           onToggleTheme={toggleTheme}
           viewMode={viewMode}
@@ -69,18 +76,18 @@ export function App() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onExportCsv={() => ws.exportCsv(filteredItems, maskContact)}
           canExport={filteredItems.length > 0}
-          activeFile={ws.activeFile}
+          activeFile={activeWs.activeFile}
         />
 
-        {ws.errorMsg && (
+        {activeWs.errorMsg && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
             <span className="inline-flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{ws.errorMsg}</span>
+              <span>{activeWs.errorMsg}</span>
             </span>
             <button
               type="button"
-              onClick={() => ws.setErrorMsg(null)}
+              onClick={() => activeWs.setErrorMsg(null)}
               className="rounded-lg p-1 hover:bg-rose-500/20 cursor-pointer"
             >
               <X className="h-4 w-4" />
@@ -89,33 +96,47 @@ export function App() {
         )}
 
         <BentoKpiRow
-          items={ws.items}
+          items={activeWs.items}
           filteredCount={filteredItems.length}
-          activeJob={ws.activeJob}
-          onCancelJob={ws.stopJob}
+          activeJob={activeWs.activeJob}
+          onCancelJob={activeWs.stopJob}
         />
 
-        <ScrapeFormCard
-          areas={ws.areas}
-          landmarks={ws.landmarks}
-          settings={scrapeSettings}
-          isRunning={isJobRunning}
-          maskContactDefault={maskContact}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onStartJob={ws.runJob}
-        />
+        {workspaceMode === "scrape" ? (
+          <ScrapeFormCard
+            areas={ws.areas}
+            landmarks={ws.landmarks}
+            settings={scrapeSettings}
+            isRunning={isJobRunning}
+            maskContactDefault={maskContact}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onStartJob={ws.runJob}
+          />
+        ) : (
+          <ResourceAnalyzerCard
+            areas={ws.areas}
+            landmarks={ws.landmarks}
+            settings={scrapeSettings}
+            inspecting={resWs.inspecting}
+            inspectStats={resWs.inspectStats}
+            isRunning={isJobRunning}
+            maskContactDefault={maskContact}
+            onInspect={resWs.inspectUrl}
+            onRun={resWs.runAnalysis}
+          />
+        )}
 
-        <TelemetryCard job={ws.activeJob} />
+        <TelemetryCard job={activeWs.activeJob} />
 
         <LiveFilterBar
-          filter={ws.filter}
+          filter={activeWs.filter}
           kecamatanOptions={kecamatanOptions}
-          onChange={ws.setFilter}
-          onReset={ws.resetFilter}
+          onChange={activeWs.setFilter}
+          onReset={activeWs.resetFilter}
           onOpenModal={() => setIsFilterOpen(true)}
         />
 
-        {ws.loading ? (
+        {activeWs.loading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <div
@@ -133,10 +154,10 @@ export function App() {
             <p className="text-xs text-[var(--text-muted)]">
               Coba longgarkan keyword pencarian atau reset filter di atas.
             </p>
-            {!isJobRunning && ws.items.length > 0 && (
+            {!isJobRunning && activeWs.items.length > 0 && (
               <button
                 type="button"
-                onClick={ws.resetFilter}
+                onClick={activeWs.resetFilter}
                 className="rounded-xl bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] cursor-pointer"
               >
                 Reset Filter
@@ -177,22 +198,22 @@ export function App() {
 
       <HistorySavedModal
         mode={modalMode}
-        files={ws.files}
-        activeFile={ws.activeFile}
+        files={activeWs.files}
+        activeFile={activeWs.activeFile}
         favorites={ws.favorites}
         onClose={() => setModalMode(null)}
-        onLoadFile={ws.loadHistoryFile}
+        onLoadFile={activeWs.loadHistoryFile}
         onSelectKos={setSelectedKos}
         onToggleFavorite={ws.toggleFavorite}
       />
 
       <FilterModal
         isOpen={isFilterOpen}
-        filter={ws.filter}
+        filter={activeWs.filter}
         items={deferredItems}
         kecamatanOptions={kecamatanOptions}
         onClose={() => setIsFilterOpen(false)}
-        onApply={ws.setFilter}
+        onApply={activeWs.setFilter}
       />
 
       <ScrapeSettingsModal

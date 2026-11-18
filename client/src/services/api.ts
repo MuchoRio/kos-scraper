@@ -3,6 +3,8 @@ import type {
   KosItem,
   LandmarkRef,
   PresetArea,
+  ResourceInspectStats,
+  ResourceJobOptions,
   ResultFile,
   ScrapeJob,
 } from "../types/kos";
@@ -99,5 +101,48 @@ export async function downloadFilteredCsv(items: KosItem[], maskContact: boolean
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export function fetchResourceResults() {
+  return requestJson<{
+    success: boolean;
+    files: ResultFile[];
+    defaultFilename: string | null;
+    items: KosItem[];
+  }>("/api/resources/results");
+}
+
+export function fetchResourceFile(filename: string) {
+  return requestJson<{ success: boolean; filename: string; items: KosItem[] }>(
+    `/api/resources/results/${encodeURIComponent(filename)}`
+  );
+}
+
+export function inspectResourceUrl(payload: {
+  url: string;
+  area: string;
+  maxPrice: number | null;
+  keywords: string[];
+}) {
+  return requestJson<{ success: boolean; stats: ResourceInspectStats; samples: KosItem[] }>(
+    "/api/resources/inspect",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function startResourceJob(payload: ResourceJobOptions, googleMapsApiKey?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (googleMapsApiKey?.trim()) {
+    headers["x-google-maps-api-key"] = googleMapsApiKey.trim();
+  }
+  return requestJson<{ success: boolean; job: ScrapeJob }>("/api/resources/jobs", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
 }
 
