@@ -10,18 +10,7 @@ function parseCliArgs(argv) {
   return { query, timeoutMs };
 }
 
-async function launchSystemBrowser() {
-  const channels = process.platform === "win32" ? ["chrome", "msedge"] : ["chrome", "chromium"];
-  let lastErr = null;
-  for (const channel of channels) {
-    try {
-      return await chromium.launch({ channel, headless: true, args: ["--lang=id-ID"] });
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  throw lastErr || new Error("No local Chrome/Edge browser available for playwright-core");
-}
+import { launchSystemBrowser } from "./chrome_launcher.mjs";
 
 function parseCoordsFromUrl(url) {
   const mAt = /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(url || "");

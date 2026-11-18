@@ -1,15 +1,22 @@
-"""SSR + card-enriched adapter for mamikos.com area landing pages."""
+"""Browser (/cari Vuex) + /room/* detail-JSON adapter for mamikos.com."""
 
 from __future__ import annotations
 
-import html as html_lib
 import re
 from typing import Any
 
 import lxml.html
 
-from ..models import KosListing, dedup_image_urls, format_idr, parse_price
+from ..models import KosListing, parse_price
 from .base import SourceAdapter
+from .mamikos_parser import (
+    build_listing_from_detail,
+    build_listing_from_fallback,
+    clean_text as _clean,
+    detect_jenis as _detect_jenis,
+    extract_detail_json,
+    fetch_mamikos_browser,
+)
 
 _AREA_ALIASES = {
     "jakarta-selatan": "jakarta-selatan",
@@ -25,26 +32,17 @@ _AREA_ALIASES = {
 }
 
 _MAMIKOS_JAKSEL_SUBS = {
+    "mampang": "mampang-jakarta-selatan",
+    "kemang": "mampang-jakarta-selatan",
+    "cipete": "mampang-jakarta-selatan",
+    "blok m": "putri-jakarta-selatan",
     "pasar minggu": "pasar-minggu-jakarta-selatan",
     "pejaten": "pasar-minggu-jakarta-selatan",
     "ampera": "pasar-minggu-jakarta-selatan",
     "tebet": "tebet-jakarta-selatan",
     "pancoran": "pancoran-jakarta-selatan",
     "kalibata": "pancoran-jakarta-selatan",
-    "jagakarsa": "jagakarsa-jakarta-selatan",
 }
-
-
-def _clean(raw: str) -> str:
-    return re.sub(r"\s+", " ", html_lib.unescape(raw)).strip()
-
-
-def _detect_jenis(tokens: list[str]) -> str | None:
-    for tok in tokens:
-        low = tok.lower()
-        if low in {"putri", "putra", "campur"}:
-            return f"Kost {tok.capitalize()}"
-    return None
 
 
 def resolve_mamikos_areas(area: str, keywords: list[str] | None) -> list[str]:
@@ -122,6 +120,8 @@ class MamikosAdapter(SourceAdapter):
             })
         return items
 
+    use_browser: bool = True
+
     def list_page(
         self,
         area: str = "jakarta-selatan",
@@ -136,6 +136,25 @@ class MamikosAdapter(SourceAdapter):
             url = self.build_list_url(area=area, page=page)
             doc = lxml.html.fromstring(html)
             return self._parse_cards(doc, max_price=max_price), False, url
+
+        if getattr(self, "use_browser", True):
+            cache: dict[tuple[Any, ...], list[dict[str, Any]]] = getattr(self, "_browser_cache", {})
+            if not hasattr(self, "_browser_cache"):
+                self._browser_cache = cache
+            cache_key = (area, max_price, tuple(keywords or ()), sort, order)
+            if cache_key not in cache:
+                browser_items = fetch_mamikos_browser(self.name, area, max_price, sort, order, keywords)
+                if browser_items:
+                    cache[cache_key] = browser_items
+            if cache_key in cache and cache[cache_key]:
+                all_items = cache[cache_key]
+                start = max(0, page - 1) * 20
+                end = start + 20
+                return (
+                    all_items[start:end],
+                    len(all_items) > end,
+                    f"{self.base_url}/cari?area={area}&page={page}",
+                )
 
         targets = resolve_mamikos_areas(area, keywords)
         if page > len(targets):
@@ -155,41 +174,15 @@ class MamikosAdapter(SourceAdapter):
         hint = dict(listing_hint or {})
         slug = hint.get("slug") or url.rstrip("/").rsplit("/", 1)[-1]
 
-        raw_imgs: list[Any] = [hint.get("image_url")]
-        if html is not None or not hint.get("title"):
-            raw_html = html if html is not None else self.client.get(url)
-            doc = lxml.html.fromstring(raw_html)
-            h1 = doc.xpath("//h1")
-            if h1 and _clean(h1[0].text_content()):
-                hint.setdefault("title", _clean(h1[0].text_content()))
-            raw_imgs.extend(
-                doc.xpath('//meta[@property="og:image"]/@content | //img[contains(@src, "mamikos")]/@src')
-            )
+        raw_html: str | None = html
+        if raw_html is None:
+            try:
+                raw_html = self.client.get(url)
+            except Exception:
+                if not hint.get("title"):
+                    raise
 
-        title = hint.get("title") or slug.replace("-", " ").title()
-        price = hint.get("listing_price")
-        facilities = list(hint.get("fasilitas_list") or [])
-        kecamatan = hint.get("kecamatan")
-        image_urls = dedup_image_urls(raw_imgs)
-        image_url = image_urls[0] if image_urls else None
-
-        return KosListing(
-            source=self.name,
-            url=url,
-            slug=slug,
-            title=title,
-            nama_kost=title,
-            price=price,
-            price_text=format_idr(price) if price is not None else "Hubungi",
-            price_options=[price] if price else [],
-            price_suspect=price is None or price < 100_000,
-            price_source="mamikos_ssr_card" if price else "unavailable",
-            jenis=hint.get("jenis"),
-            kecamatan=kecamatan,
-            alamat=f"{kecamatan}, Area Listing Mamikos" if kecamatan else None,
-            fasilitas=(", ".join(facilities)[:400] if facilities else None),
-            fasilitas_list=facilities,
-            image_url=image_url,
-            image_urls=image_urls,
-            is_featured=bool(hint.get("is_featured", False)),
-        )
+        detail = extract_detail_json(raw_html) if raw_html else None
+        if detail:
+            return build_listing_from_detail(self.name, url, slug, detail, hint)
+        return build_listing_from_fallback(self.name, url, slug, raw_html, hint)
