@@ -1,4 +1,5 @@
 import { ShieldCheck, TrainFront } from "lucide-react";
+import { SOURCE_OPTIONS } from "../constants/sources";
 import type { FilterState } from "../types/kos";
 import { BUILDING_FACILITY_FILTERS, ROOM_FACILITY_FILTERS, type FacilityFilterOption } from "../utils/facilityCatalog";
 import { FacilityIcon } from "./FacilityPillList";
@@ -233,14 +234,7 @@ export function FilterModalSections({ draft, kecamatanOptions, onChange }: Filte
           onSelect={(source) => onChange({ ...draft, source })}
           options={[
             { id: "all", label: "Semua Sumber" },
-            { id: "sewakost", label: "sewakost.com" },
-            { id: "rukita", label: "rukita.co" },
-            { id: "mamikos", label: "mamikos.com" },
-            { id: "infokost", label: "infokost.id" },
-            { id: "cove", label: "cove.id" },
-            { id: "djuragankamar", label: "djuragankamar.com" },
-            { id: "rumah123", label: "rumah123.com" },
-            { id: "kostjakarta", label: "kostjakarta.com" },
+            ...SOURCE_OPTIONS.map((opt) => ({ id: opt.id, label: opt.label })),
           ]}
         />
       </section>

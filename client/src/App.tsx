@@ -9,7 +9,9 @@ import { ListingBentoCard } from "./components/ListingBentoCard";
 import { ListingTable } from "./components/ListingTable";
 import { LiveFilterBar } from "./components/LiveFilterBar";
 import { ScrapeFormCard } from "./components/ScrapeFormCard";
+import { ScrapeSettingsModal, type ScrapeSettingsState } from "./components/ScrapeSettingsModal";
 import { TelemetryCard } from "./components/TelemetryCard";
+import { DEFAULT_SOURCES } from "./constants/sources";
 import { useKosWorkspace } from "./hooks/useKosWorkspace";
 import { useTheme } from "./hooks/useTheme";
 import type { KosItem, ViewMode } from "./types/kos";
@@ -24,6 +26,15 @@ export function App() {
   const [selectedKos, setSelectedKos] = useState<KosItem | null>(null);
   const [modalMode, setModalMode] = useState<"history" | "saved" | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [scrapeSettings, setScrapeSettings] = useState<ScrapeSettingsState>({
+    sources: DEFAULT_SOURCES,
+    maxPages: "6",
+    concurrency: "4",
+    landmarkId: "bank-mega",
+    enableGeo: true,
+    enableGmaps: true,
+  });
 
   const deferredFilter = useDeferredValue(ws.filter);
   const deferredItems = useDeferredValue(ws.items);
@@ -55,6 +66,7 @@ export function App() {
           favoritesCount={ws.favorites.length}
           onOpenSaved={() => setModalMode("saved")}
           onOpenHistory={() => setModalMode("history")}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           onExportCsv={() => ws.exportCsv(filteredItems, maskContact)}
           canExport={filteredItems.length > 0}
           activeFile={ws.activeFile}
@@ -86,11 +98,10 @@ export function App() {
         <ScrapeFormCard
           areas={ws.areas}
           landmarks={ws.landmarks}
+          settings={scrapeSettings}
           isRunning={isJobRunning}
           maskContactDefault={maskContact}
-          hasServerMapsKey={ws.hasServerMapsKey}
-          mapsApiKey={ws.mapsApiKey}
-          onChangeMapsApiKey={ws.setMapsApiKey}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           onStartJob={ws.runJob}
         />
 
@@ -182,6 +193,17 @@ export function App() {
         kecamatanOptions={kecamatanOptions}
         onClose={() => setIsFilterOpen(false)}
         onApply={ws.setFilter}
+      />
+
+      <ScrapeSettingsModal
+        isOpen={isSettingsOpen}
+        settings={scrapeSettings}
+        landmarks={ws.landmarks}
+        hasServerMapsKey={ws.hasServerMapsKey}
+        mapsApiKey={ws.mapsApiKey}
+        onChange={setScrapeSettings}
+        onChangeMapsApiKey={ws.setMapsApiKey}
+        onClose={() => setIsSettingsOpen(false)}
       />
 
       {ws.toastMsg && (

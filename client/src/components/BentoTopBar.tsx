@@ -7,6 +7,7 @@ import {
   Home,
   LayoutGrid,
   Moon,
+  Settings2,
   Sun,
   Table2,
 } from "lucide-react";
@@ -22,6 +23,7 @@ interface BentoTopBarProps {
   favoritesCount: number;
   onOpenSaved: () => void;
   onOpenHistory: () => void;
+  onOpenSettings: () => void;
   onExportCsv: () => void;
   canExport: boolean;
   activeFile: string | null;
@@ -37,6 +39,7 @@ export function BentoTopBar({
   favoritesCount,
   onOpenSaved,
   onOpenHistory,
+  onOpenSettings,
   onExportCsv,
   canExport,
   activeFile,
@@ -119,6 +122,15 @@ export function BentoTopBar({
           >
             <Bookmark className="h-3.5 w-3.5 text-[var(--accent)]" />
             <span>Favorit ({favoritesCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+          >
+            <Settings2 className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <span>Pengaturan</span>
           </button>
 
           <button

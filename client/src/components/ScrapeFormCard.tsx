@@ -1,95 +1,57 @@
-import { ChevronDown, ChevronUp, Play, SlidersHorizontal } from "lucide-react";
+import { Play, Settings2, SlidersHorizontal } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { JobOptions, LandmarkRef, PresetArea, SourceId } from "../types/kos";
-import { ScrapeAdvancedSection } from "./ScrapeAdvancedSection";
+import { SOURCE_OPTIONS } from "../constants/sources";
+import type { JobOptions, LandmarkRef, PresetArea } from "../types/kos";
+import type { ScrapeSettingsState } from "./ScrapeSettingsModal";
 
 interface ScrapeFormCardProps {
   areas: PresetArea[];
   landmarks: LandmarkRef[];
+  settings: ScrapeSettingsState;
   isRunning: boolean;
   maskContactDefault: boolean;
-  hasServerMapsKey: boolean;
-  mapsApiKey: string;
-  onChangeMapsApiKey: (key: string) => void;
+  onOpenSettings: () => void;
   onStartJob: (options: JobOptions) => void;
 }
-
-const SOURCE_OPTIONS: { id: SourceId; label: string }[] = [
-  { id: "sewakost", label: "sewakost.com" },
-  { id: "rukita", label: "rukita.co" },
-  { id: "mamikos", label: "mamikos.com" },
-  { id: "infokost", label: "infokost.id" },
-  { id: "cove", label: "cove.id" },
-  { id: "djuragankamar", label: "djuragankamar.com" },
-  { id: "rumah123", label: "rumah123.com" },
-  { id: "kostjakarta", label: "kostjakarta.com" },
-];
 
 export function ScrapeFormCard({
   areas,
   landmarks,
+  settings,
   isRunning,
   maskContactDefault,
-  hasServerMapsKey,
-  mapsApiKey,
-  onChangeMapsApiKey,
+  onOpenSettings,
   onStartJob,
 }: ScrapeFormCardProps) {
-  const [sources, setSources] = useState<SourceId[]>([
-    "sewakost",
-    "rukita",
-    "mamikos",
-    "infokost",
-    "djuragankamar",
-    "rumah123",
-    "kostjakarta",
-  ]);
   const [area, setArea] = useState("jakarta-selatan");
   const [maxPrice, setMaxPrice] = useState("1500000");
   const [targetKos, setTargetKos] = useState("20");
-  const [maxPages, setMaxPages] = useState("6");
-  const [concurrency, setConcurrency] = useState("4");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [keywords, setKeywords] = useState("kemang,blok m,cipete,mampang");
-  const [landmarkId, setLandmarkId] = useState("bank-mega");
-  const [enableGeo, setEnableGeo] = useState(true);
-  const [enableGmaps, setEnableGmaps] = useState(true);
 
-  const toggleSource = (src: SourceId) => {
-    setSources((prev) =>
-      prev.includes(src)
-        ? prev.length > 1
-          ? prev.filter((s) => s !== src)
-          : prev
-        : [...prev, src]
-    );
-  };
+  const activeLandmark = landmarks.find((l) => l.id === settings.landmarkId) || landmarks[0] || null;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const ref = landmarks.find((l) => l.id === landmarkId) || landmarks[0] || null;
     const limit = Math.min(60, Math.max(1, Number(targetKos) || 20));
-    const pages = showAdvanced
-      ? Math.min(15, Math.max(1, Number(maxPages) || 6))
-      : Math.max(4, Math.min(8, Math.ceil(limit / 5)));
+    const pages = Math.min(15, Math.max(1, Number(settings.maxPages) || 6));
     onStartJob({
-      sources,
+      sources: settings.sources,
       area,
       maxPrice: maxPrice ? Number(maxPrice) : null,
       maxPages: pages,
       detailsLimit: limit,
-      concurrency: Math.min(8, Math.max(1, Number(concurrency) || 4)),
+      concurrency: Math.min(8, Math.max(1, Number(settings.concurrency) || 4)),
       sort: "default",
       order: "desc",
       keywords: keywords
         .split(",")
         .map((k) => k.trim())
         .filter(Boolean),
-      geocode: enableGeo,
-      gmaps: enableGmaps,
+      geocode: settings.enableGeo,
+      gmaps: settings.enableGmaps,
       maskContact: maskContactDefault,
-      refLat: enableGeo && ref ? ref.lat : null,
-      refLon: enableGeo && ref ? ref.lon : null,
+      refLat: settings.enableGeo && activeLandmark ? activeLandmark.lat : null,
+      refLon: settings.enableGeo && activeLandmark ? activeLandmark.lon : null,
     });
   };
 
@@ -104,31 +66,16 @@ export function ScrapeFormCard({
           <h2 className="text-sm font-semibold">Konfigurasi Scrape Baru</h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {SOURCE_OPTIONS.map((opt) => {
-            const active = sources.includes(opt.id);
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => toggleSource(opt.id)}
-                className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
-                  active
-                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[var(--text-muted)]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-          <span
-            title="99.co (Cloudflare 403), Trovit (HTTP 401), Papikost (403/kosong), IdKos (down/404) tidak di-bypass"
-            className="rounded-lg border border-dashed border-[var(--border-subtle)] px-2 py-1.5 text-xs text-[var(--text-muted)] whitespace-nowrap shrink-0"
-          >
-            trovit/papikos/idkos/99 (blocked/down)
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent)] whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+        >
+          <Settings2 className="h-3.5 w-3.5 text-[var(--accent)]" />
+          <span>
+            Pengaturan ({settings.sources.length}/{SOURCE_OPTIONS.length} situs)
           </span>
-        </div>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
@@ -211,69 +158,20 @@ export function ScrapeFormCard({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-[var(--text-muted)]">
-        <div className="flex flex-wrap items-center gap-4">
-          <label className="inline-flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={enableGeo}
-              onChange={(e) => setEnableGeo(e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent)]"
-            />
-            <span>Hitung jarak (OSM Geocode)</span>
-          </label>
-
-          <label className="inline-flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={enableGmaps}
-              onChange={(e) => setEnableGmaps(e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent)]"
-            />
-            <span>Rating, Evaluasi &amp; Anti-Penipuan Maps</span>
-          </label>
-
-          <button
-            type="button"
-            onClick={() => setShowAdvanced((v) => !v)}
-            className="inline-flex items-center gap-1 font-medium hover:text-[var(--text-primary)] cursor-pointer whitespace-nowrap"
-          >
-            <span>Opsi Lanjutan</span>
-            {showAdvanced ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-
-        {enableGeo && landmarks.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="whitespace-nowrap">Titik acuan:</span>
-            <select
-              value={landmarkId}
-              onChange={(e) => setLandmarkId(e.target.value)}
-              className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-2.5 py-1 text-xs text-[var(--text-primary)]"
-            >
-              {landmarks.map((lm) => (
-                <option key={lm.id} value={lm.id}>
-                  {lm.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+        <span>
+          Acuan: <strong>{settings.enableGeo && activeLandmark ? activeLandmark.label : "Nonaktif"}</strong>
+          {" · "}Maps Anti-Scam: <strong>{settings.enableGmaps ? "Aktif" : "Mati"}</strong>
+          {" · "}Parallel: <strong>{settings.concurrency} thread</strong>
+        </span>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="font-medium text-[var(--accent)] hover:underline cursor-pointer"
+        >
+          Pilih sumber &amp; pengaturan lanjut →
+        </button>
       </div>
-
-      <ScrapeAdvancedSection
-        showAdvanced={showAdvanced}
-        maxPages={maxPages}
-        targetKos={targetKos}
-        concurrency={concurrency}
-        onChangeMaxPages={setMaxPages}
-        onChangeTargetKos={setTargetKos}
-        onChangeConcurrency={setConcurrency}
-        enableGmaps={enableGmaps}
-        hasServerMapsKey={hasServerMapsKey}
-        mapsApiKey={mapsApiKey}
-        onChangeMapsApiKey={onChangeMapsApiKey}
-      />
     </form>
   );
 }
