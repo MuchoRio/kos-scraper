@@ -29,6 +29,7 @@ export function buildPythonArgs(rootDir, dataDir, options) {
       args.push("--ref-lat", String(options.refLat), "--ref-lon", String(options.refLon));
     }
     if (options.maskContact) args.push("--mask-contact");
+    if (options.presetId) args.push("--mask-source-url", "--source-tag", options.presetId);
     if (options.storageMode) args.push("--storage-mode", options.storageMode);
     else if (options.keepHistory) args.push("--keep-history");
     return args;

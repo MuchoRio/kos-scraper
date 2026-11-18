@@ -38,6 +38,7 @@ export class JobQueueManager {
       id,
       options,
       _apiKey: runtimeSecrets.googleMapsApiKey || null,
+      _resourceUrl: runtimeSecrets.resourceUrl || null,
       status: "queued",
       progress: { phase: "queued", current: 0, total: 0, message: "Menunggu giliran antrean..." },
       logs: [],
@@ -129,7 +130,9 @@ export class JobQueueManager {
     this._pushLog(job, startMsg);
     this._broadcast(job.id, "status", this._publicJob(job));
 
-    const args = buildPythonArgs(this.rootDir, this.store.dataDir, job.options);
+    const runOpts = job._resourceUrl ? { ...job.options, url: job._resourceUrl } : job.options;
+    job._resourceUrl = null;
+    const args = buildPythonArgs(this.rootDir, this.store.dataDir, runOpts);
     const childEnv = { ...process.env };
     if (job._apiKey) {
       childEnv.GOOGLE_MAPS_API_KEY = job._apiKey;

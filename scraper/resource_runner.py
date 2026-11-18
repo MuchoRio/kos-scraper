@@ -58,9 +58,13 @@ def inspect_resource(
     quality: str = "all",
     gender: str = "all",
     pet: str = "all",
+    mask_source_url: bool = False,
+    source_tag: str = "resource",
 ) -> dict[str, Any]:
     """Quick (<2s) inspection of a Google Sheet/Doc returning stats + filtered count + sample."""
-    loaded = load_google_resource(url, area=area, keywords=keywords)
+    loaded = load_google_resource(
+        url, area=area, keywords=keywords, mask_source_url=mask_source_url, source_tag=source_tag
+    )
     stats = compute_resource_stats(loaded)
     filtered, dups = filter_and_rank_rows(
         loaded["rows"],
@@ -153,6 +157,8 @@ def run_resource_analysis(
     ref_lon: float | None = None,
     out_dir: Path | None = None,
     mask_contact: bool = False,
+    mask_source_url: bool = False,
+    source_tag: str = "resource",
     keep_history: bool = False,
     storage_mode: str = "replace",
     progress_cb: Callable[[dict[str, Any]], None] | None = None,
@@ -165,7 +171,9 @@ def run_resource_analysis(
                 progress_cb(ev)
 
     emit({"type": "phase", "phase": "load", "message": "Membaca & memfilter resource Google Sheet/Doc..."})
-    loaded = load_google_resource(url, area=area, keywords=keywords)
+    loaded = load_google_resource(
+        url, area=area, keywords=keywords, mask_source_url=mask_source_url, source_tag=source_tag
+    )
     stats = compute_resource_stats(loaded)
     filtered, dups = filter_and_rank_rows(
         loaded["rows"],

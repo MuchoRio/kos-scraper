@@ -146,15 +146,17 @@ export function DetailDrawer({
               <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current text-[var(--accent)]" : ""}`} />
               <span>{isSaved ? "Tersimpan" : "Simpan"}</span>
             </button>
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] whitespace-nowrap"
-            >
-              <span>Buka Iklan</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
+            {item.url.startsWith("http") && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] whitespace-nowrap"
+              >
+                <span>Buka Iklan</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
         </div>
 

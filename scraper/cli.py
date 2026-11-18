@@ -41,6 +41,8 @@ def _add_resource_filter_flags(sp: argparse.ArgumentParser) -> None:
     sp.add_argument("--quality", default="all", choices=["all", "curated", "top", "worth_it", "best_deal", "standar"])
     sp.add_argument("--gender", default="all", choices=["all", "campur", "wanita", "pria", "bebas"])
     sp.add_argument("--pet", default="all", choices=["all", "pet_friendly", "no_pet"])
+    sp.add_argument("--mask-source-url", action="store_true")
+    sp.add_argument("--source-tag", default="resource")
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -117,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
             quality=args.quality,
             gender=args.gender,
             pet=args.pet,
+            mask_source_url=args.mask_source_url,
+            source_tag=args.source_tag,
         )
         print(json.dumps(res, ensure_ascii=False))
         return 0

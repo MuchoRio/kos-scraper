@@ -2,10 +2,15 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import express from "express";
+import {
+  deleteCatalogPreset,
+  GOOGLE_DOC_OR_SHEET_RE,
+  listPublicPresets,
+  resolveCatalogEntry,
+  saveCatalogPreset,
+} from "../services/resourceCatalog.js";
 import { AppError, safeResultFilename } from "../utils/validation.js";
 
-const GOOGLE_DOC_OR_SHEET_RE =
-  /^https:\/\/docs\.google\.com\/(?:spreadsheets|document)\/d\/[a-zA-Z0-9_-]{15,}(?:\/[^\s]*)?$/i;
 const AREA_RE = /^[a-z0-9-]{2,60}$/;
 const ALLOWED_PRICE_CAT = new Set(["all", "murah", "middle", "premium"]);
 const ALLOWED_AVAIL = new Set(["available_or_unknown", "strict_available", "all"]);
@@ -26,11 +31,21 @@ function validateResourceUrl(raw) {
   return url;
 }
 
-function validateResourcePayload(body) {
+function validateResourcePayload(body, dataDir) {
   if (!body || typeof body !== "object") {
     throw new AppError("Payload resource wajib berupa objek JSON.", 400);
   }
-  const url = validateResourceUrl(body.url);
+  let resolvedUrl = null;
+  let presetId = null;
+  let sourceLabel = null;
+  if (body.presetId) {
+    const entry = resolveCatalogEntry(dataDir, body.presetId);
+    resolvedUrl = entry.url;
+    presetId = entry.id;
+    sourceLabel = entry.label;
+  } else {
+    resolvedUrl = validateResourceUrl(body.url);
+  }
   const area = String(body.area || "jakarta-selatan").trim().toLowerCase();
   if (!AREA_RE.test(area)) {
     throw new AppError("Format area tidak valid.", 400);
@@ -63,9 +78,13 @@ function validateResourcePayload(body) {
     body.onlyAvailable === false ? "all" : "available_or_unknown"
   );
   return {
-    kind: "resource",
-    url,
-    area,
+    resolvedUrl,
+    options: {
+      kind: "resource",
+      url: presetId ? null : resolvedUrl,
+      presetId,
+      sourceLabel,
+      area,
     maxPrice,
     keywords,
     detailsLimit,
@@ -82,13 +101,14 @@ function validateResourcePayload(body) {
     gmaps: body.gmaps !== false,
     maskContact: Boolean(body.maskContact),
     keepHistory: Boolean(body.keepHistory),
-    storageMode: ["replace", "merge", "archive"].includes(String(body.storageMode || ""))
-      ? String(body.storageMode)
-      : body.keepHistory
-      ? "archive"
-      : "replace",
-    refLat,
-    refLon,
+      storageMode: ["replace", "merge", "archive"].includes(String(body.storageMode || ""))
+        ? String(body.storageMode)
+        : body.keepHistory
+        ? "archive"
+        : "replace",
+      refLat,
+      refLon,
+    },
   };
 }
 
@@ -107,6 +127,20 @@ function listResourceFiles(dataDir) {
 
 export function createResourcesRouter({ config, queue }) {
   const router = express.Router();
+
+  router.get("/resources/presets", (_req, res) => {
+    res.json({ success: true, presets: listPublicPresets(config.dataDir) });
+  });
+
+  router.post("/resources/presets", (req, res) => {
+    const result = saveCatalogPreset(config.dataDir, req.body || {});
+    res.status(201).json({ success: true, ...result });
+  });
+
+  router.delete("/resources/presets/:id", (req, res) => {
+    const result = deleteCatalogPreset(config.dataDir, req.params.id);
+    res.json({ success: true, ...result });
+  });
 
   router.get("/resources/results", (_req, res) => {
     const files = listResourceFiles(config.dataDir);
@@ -144,11 +178,11 @@ export function createResourcesRouter({ config, queue }) {
   });
 
   router.post("/resources/inspect", (req, res) => {
-    const opts = validateResourcePayload(req.body);
+    const { resolvedUrl, options: opts } = validateResourcePayload(req.body, config.dataDir);
     const args = [
       path.join(config.rootDir, "kos_scraper.py"),
       "inspect-resource",
-      "--url", opts.url,
+      "--url", resolvedUrl,
       "--area", opts.area,
       "--price-category", opts.priceCategory,
       "--availability", opts.availability,
@@ -160,6 +194,7 @@ export function createResourcesRouter({ config, queue }) {
     if (opts.keywords.length > 0) args.push("--keyword", opts.keywords.join(","));
     if (!opts.deduplicate) args.push("--no-dedup");
     if (opts.includeUnpriced) args.push("--include-unpriced");
+    if (opts.presetId) args.push("--mask-source-url", "--source-tag", opts.presetId);
 
     const proc = spawnSync(config.pythonBin, args, {
       cwd: config.rootDir,
@@ -178,9 +213,12 @@ export function createResourcesRouter({ config, queue }) {
   });
 
   router.post("/resources/jobs", (req, res) => {
-    const options = validateResourcePayload(req.body);
+    const { resolvedUrl, options } = validateResourcePayload(req.body, config.dataDir);
     const apiKeyHeader = req.get("x-google-maps-api-key");
-    const runtimeSecrets = apiKeyHeader ? { googleMapsApiKey: apiKeyHeader.trim() } : {};
+    const runtimeSecrets = {
+      ...(apiKeyHeader ? { googleMapsApiKey: apiKeyHeader.trim() } : {}),
+      resourceUrl: resolvedUrl,
+    };
     const job = queue.enqueue(options, runtimeSecrets);
     res.status(201).json({ success: true, job });
   });

@@ -2,9 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cancelScrapeJob,
   deleteResourceFile,
+  deleteResourcePreset,
   fetchResourceFile,
+  fetchResourcePresets,
   fetchResourceResults,
   inspectResourceUrl,
+  saveResourcePreset,
   startResourceJob,
 } from "../services/api";
 import type {
@@ -13,12 +16,14 @@ import type {
   ResourceInspectPayload,
   ResourceInspectStats,
   ResourceJobOptions,
+  ResourceServerPreset,
   ResultFile,
   ScrapeJob,
 } from "../types/kos";
 import { DEFAULT_FILTER } from "../utils/kosAttributes";
 
 export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) => void) {
+  const [presets, setPresets] = useState<ResourceServerPreset[]>([]);
   const [files, setFiles] = useState<ResultFile[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [items, setItems] = useState<KosItem[]>([]);
@@ -32,14 +37,18 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
 
   useEffect(() => {
     let active = true;
-    fetchResourceResults()
-      .then((res) => {
+    Promise.allSettled([fetchResourceResults(), fetchResourcePresets()])
+      .then(([resOut, presetOut]) => {
         if (!active) return;
-        setFiles(res.files);
-        setActiveFile(res.defaultFilename);
-        setItems(res.items);
+        if (resOut.status === "fulfilled") {
+          setFiles(resOut.value.files);
+          setActiveFile(resOut.value.defaultFilename);
+          setItems(resOut.value.items);
+        }
+        if (presetOut.status === "fulfilled") {
+          setPresets(presetOut.value.presets);
+        }
       })
-      .catch(() => {})
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -48,6 +57,30 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
       esRef.current?.close();
     };
   }, []);
+
+  const savePreset = async (label: string, url: string) => {
+    setErrorMsg(null);
+    try {
+      const res = await saveResourcePreset({ label, url });
+      setPresets(res.presets);
+      notify(`Tersimpan ke Database Server: ${res.preset.label}`);
+      return res.preset.id;
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Gagal menyimpan sumber ke server.");
+      return null;
+    }
+  };
+
+  const deletePreset = async (id: string) => {
+    setErrorMsg(null);
+    try {
+      const res = await deleteResourcePreset(id);
+      setPresets(res.presets);
+      notify("Sumber database server dihapus.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Gagal menghapus sumber database.");
+    }
+  };
 
   const inspectUrl = async (payload: ResourceInspectPayload) => {
     setErrorMsg(null);
@@ -151,6 +184,7 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
   };
 
   return {
+    presets,
     files,
     activeFile,
     items,
@@ -166,6 +200,8 @@ export function useResourceWorkspace(mapsApiKey: string, notify: (msg: string) =
     inspectUrl,
     runAnalysis,
     stopJob,
+    savePreset,
+    deletePreset,
     loadHistoryFile,
     deleteHistoryFile,
   };

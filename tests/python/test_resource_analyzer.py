@@ -20,13 +20,13 @@ from scraper.resource_runner import run_resource_analysis
 class TestResourceParserAndRunner(unittest.TestCase):
     def test_validates_google_urls_and_rejects_arbitrary_hosts(self) -> None:
         sheet = parse_google_resource_url(
-            "https://docs.google.com/spreadsheets/d/1VwTJymN8n-h3CZwAuFu5kdNdwsUvZBoRuBOVDAZl7Jc/edit?gid=0#gid=0"
+            "https://docs.google.com/spreadsheets/d/1SYNTHETIC_SHEET_ID_123456/edit?gid=0#gid=0"
         )
         self.assertEqual(sheet["kind"], "sheet")
         self.assertEqual(sheet["gid"], "0")
 
         doc = parse_google_resource_url(
-            "https://docs.google.com/document/d/1j2J67Y5BrGZji9bRR3zkCcucEzEEK3LdR-E1jfKKldc/edit?tab=t.sbuhwwmpwo3p"
+            "https://docs.google.com/document/d/1SYNTHETIC_DOC_ID_1234567/edit?tab=t.0"
         )
         self.assertEqual(doc["kind"], "doc")
 
@@ -40,10 +40,11 @@ class TestResourceParserAndRunner(unittest.TestCase):
             'FALSE,KST-2,Kost  Tebet,Rp1.219.000,81316059370,Belum diisi (akan diperbarui),💸 Kost Murah,🟢 Kost Tersedia ,👫 Kost Campur,Belum diisi (akan diperbarui),"Jl. Tebet Barat VIII No. 19",Tebet,Tebet,🌳 Jakarta Selatan,DKI,"WiFi, AC","Duplikat",Belum diisi,https://maps.app.goo.gl/abc',
             'FALSE,KST-3,Kost Penuh,Rp900.000,81200000001,👍 Worth It,💸 Kost Murah,🔴 Kost Penuh,👩 Kost Wanita,🚫 Tidak Pet Friendly,"Jl. Mampang",Mampang,Mampang Prapatan,🌳 Jakarta Selatan,DKI,"WiFi","Penuh",https://maps.google.com?q=-6.245,106.829,Belum diisi',
         ])
-        sheet_url = "https://docs.google.com/spreadsheets/d/1VwTJymN8n-h3CZwAuFu5kdNdwsUvZBoRuBOVDAZl7Jc/edit?gid=0"
+        sheet_url = "https://docs.google.com/spreadsheets/d/1SYNTHETIC_SHEET_ID_123456/edit?gid=0"
         with patch("scraper.resource_parser._fetch_text", return_value=sample_csv):
-            loaded = load_google_resource(sheet_url)
+            loaded = load_google_resource(sheet_url, mask_source_url=True, source_tag="kostpedia-dki")
         self.assertEqual(loaded["schema"], "kostpedia_19col")
+        self.assertEqual(loaded["rows"][0]["url"], "server://kostpedia-dki#row=KST-1")
         stats = compute_resource_stats(loaded)
         self.assertEqual(stats["total_rows"], 3)
         self.assertEqual(stats["duplicate_rows"], 1)
@@ -81,7 +82,7 @@ class TestResourceParserAndRunner(unittest.TestCase):
             "No,Nama Kost,WA Kontak",
             "1,Kost Bima Mampang,+62 812‑8070‑6804",
         ])
-        url = "https://docs.google.com/spreadsheets/d/1GRGV53lLVkzj7jfEHk3tHO1AjuHk4AC0ZMS3LYW8Wuo/edit?gid=0"
+        url = "https://docs.google.com/spreadsheets/d/1SYNTHETIC_SHEET_ID_123456/edit?gid=0"
         with tempfile.TemporaryDirectory() as tmp:
             out_dir = pathlib.Path(tmp)
             with patch("scraper.resource_parser._fetch_text", return_value=mini_csv):

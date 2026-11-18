@@ -118,11 +118,27 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
   const srv = await startTestServer(tmp, "complete");
   t.after(() => srv.close());
 
+  // Server-side private resource catalog never leaks raw URLs back to clients
+  const savedPreset = await fetch(`${srv.baseUrl}/api/resources/presets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      label: "Private Kost DB",
+      url: "https://docs.google.com/spreadsheets/d/1PRIVATE_SECRET_SHEET_ID_99999/edit?gid=0",
+    }),
+  }).then((r) => r.json());
+  assert.equal(savedPreset.success, true);
+  assert.equal("url" in savedPreset.preset, false);
+
+  const presetList = await fetch(`${srv.baseUrl}/api/resources/presets`).then((r) => r.json());
+  assert.equal(presetList.presets.length, 1);
+  assert.equal(JSON.stringify(presetList).includes("1PRIVATE_SECRET_SHEET_ID_99999"), false);
+
   const createdRes = await fetch(`${srv.baseUrl}/api/resources/jobs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      url: "https://docs.google.com/spreadsheets/d/1VwTJymN8n-h3CZwAuFu5kdNdwsUvZBoRuBOVDAZl7Jc/edit?gid=0",
+      presetId: savedPreset.preset.id,
       area: "jakarta-selatan",
       priceCategory: "murah",
       availability: "strict_available",
@@ -136,10 +152,20 @@ test("Job queue streams items, completes, and exports safe CSV", async (t) => {
   });
   assert.equal(createdRes.status, 201);
   const { job: resJob } = await createdRes.json();
+  assert.equal(resJob.options.url, null);
+  assert.equal(resJob.options.presetId, savedPreset.preset.id);
+  assert.equal(JSON.stringify(resJob).includes("1PRIVATE_SECRET_SHEET_ID_99999"), false);
+  const stateFile = fs.readFileSync(path.join(tmp, "jobs_state.json"), "utf8");
+  assert.equal(stateFile.includes("1PRIVATE_SECRET_SHEET_ID_99999"), false);
   assert.equal(resJob.options.priceCategory, "murah");
   assert.equal(resJob.options.availability, "strict_available");
   assert.equal(resJob.options.storageMode, "merge");
   assert.equal(resJob.options.detailsLimit, 120);
+
+  const delPreset = await fetch(`${srv.baseUrl}/api/resources/presets/${savedPreset.preset.id}`, {
+    method: "DELETE",
+  }).then((r) => r.json());
+  assert.equal(delPreset.presets.length, 0);
 
   // File CRUD delete endpoints validate & delete safely
   fs.writeFileSync(path.join(tmp, "old_test.json"), "[]", "utf8");

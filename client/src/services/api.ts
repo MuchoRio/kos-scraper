@@ -6,6 +6,7 @@ import type {
   ResourceInspectPayload,
   ResourceInspectStats,
   ResourceJobOptions,
+  ResourceServerPreset,
   ResultFile,
   ScrapeJob,
 } from "../types/kos";
@@ -109,6 +110,28 @@ export async function downloadFilteredCsv(items: KosItem[], maskContact: boolean
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export function fetchResourcePresets() {
+  return requestJson<{ success: boolean; presets: ResourceServerPreset[] }>("/api/resources/presets");
+}
+
+export function saveResourcePreset(payload: { label: string; url: string }) {
+  return requestJson<{ success: boolean; preset: ResourceServerPreset; presets: ResourceServerPreset[] }>(
+    "/api/resources/presets",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function deleteResourcePreset(id: string) {
+  return requestJson<{ success: boolean; deleted: string; presets: ResourceServerPreset[] }>(
+    `/api/resources/presets/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  );
 }
 
 export function fetchResourceResults() {

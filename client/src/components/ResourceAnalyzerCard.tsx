@@ -1,28 +1,22 @@
-import { FileSpreadsheet, Play, Search, Settings2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import type { LandmarkRef, PresetArea, ResourceInspectPayload, ResourceInspectStats, ResourceJobOptions } from "../types/kos";
+import { Play, Settings2 } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import type {
+  LandmarkRef,
+  PresetArea,
+  ResourceInspectPayload,
+  ResourceInspectStats,
+  ResourceJobOptions,
+  ResourceServerPreset,
+} from "../types/kos";
 import { formatIdr } from "../utils/formatters";
+import { ResourceSourcePicker } from "./ResourceSourcePicker";
 import type { ScrapeSettingsState } from "./ScrapeSettingsModal";
 import { TargetLimitField } from "./TargetLimitField";
-
-const COMMUNITY_PRESETS = [
-  {
-    label: "Kostpedia DKI (11rb baris)",
-    url: "https://docs.google.com/spreadsheets/d/1VwTJymN8n-h3CZwAuFu5kdNdwsUvZBoRuBOVDAZl7Jc/edit?gid=0#gid=0",
-  },
-  {
-    label: "Kurasi Video (110 baris)",
-    url: "https://docs.google.com/spreadsheets/d/1GRGV53lLVkzj7jfEHk3tHO1AjuHk4AC0ZMS3LYW8Wuo/edit?gid=0#gid=0",
-  },
-  {
-    label: "Master Doc DKI (42 Kec.)",
-    url: "https://docs.google.com/document/d/1j2J67Y5BrGZji9bRR3zkCcucEzEEK3LdR-E1jfKKldc/edit?tab=t.sbuhwwmpwo3p",
-  },
-];
 
 interface ResourceAnalyzerCardProps {
   areas: PresetArea[];
   landmarks: LandmarkRef[];
+  presets: ResourceServerPreset[];
   settings: ScrapeSettingsState;
   inspecting: boolean;
   inspectStats: ResourceInspectStats | null;
@@ -31,11 +25,14 @@ interface ResourceAnalyzerCardProps {
   onOpenSettings: () => void;
   onInspect: (payload: ResourceInspectPayload) => void;
   onRun: (options: ResourceJobOptions) => void;
+  onSavePreset: (label: string, url: string) => Promise<string | null>;
+  onDeletePreset: (id: string) => Promise<void>;
 }
 
 export function ResourceAnalyzerCard({
   areas,
   landmarks,
+  presets,
   settings,
   inspecting,
   inspectStats,
@@ -44,19 +41,37 @@ export function ResourceAnalyzerCard({
   onOpenSettings,
   onInspect,
   onRun,
+  onSavePreset,
+  onDeletePreset,
 }: ResourceAnalyzerCardProps) {
-  const [url, setUrl] = useState(COMMUNITY_PRESETS[0].url);
+  const [sourceMode, setSourceMode] = useState<"server" | "custom">(presets.length > 0 ? "server" : "custom");
+  const [presetId, setPresetId] = useState(presets[0]?.id || "");
+  const [url, setUrl] = useState("");
   const [area, setArea] = useState("jakarta-selatan");
   const [maxPrice, setMaxPrice] = useState("1500000");
   const [keywords, setKeywords] = useState("mampang, kemang, pancoran, tebet");
   const [targetCount, setTargetCount] = useState("20");
 
+  useEffect(() => {
+    if (presets.length > 0) {
+      if (!presets.some((p) => p.id === presetId)) {
+        setPresetId(presets[0].id);
+        setSourceMode("server");
+      }
+    } else if (sourceMode === "server") {
+      setSourceMode("custom");
+    }
+  }, [presets, presetId, sourceMode]);
+
   const parsedKws = keywords.split(",").map((k) => k.trim()).filter(Boolean);
   const activeLandmark = landmarks.find((l) => l.id === settings.landmarkId) || landmarks[0] || null;
+  const activeTarget = sourceMode === "server" && presetId ? { presetId } : { url };
 
-  const triggerInspect = (overrideUrl?: string) => {
+  const triggerInspect = () => {
+    if (sourceMode === "custom" && !url.trim()) return;
+    if (sourceMode === "server" && !presetId) return;
     onInspect({
-      url: overrideUrl || url,
+      ...activeTarget,
       area,
       maxPrice: maxPrice ? Number(maxPrice) : null,
       keywords: parsedKws,
@@ -70,10 +85,20 @@ export function ResourceAnalyzerCard({
     });
   };
 
+  const handleSavePreset = async (label: string, rawUrl: string) => {
+    const savedId = await onSavePreset(label, rawUrl);
+    if (savedId) {
+      setPresetId(savedId);
+      setSourceMode("server");
+      setUrl("");
+    }
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (sourceMode === "server" && !presetId) return;
     onRun({
-      url,
+      ...activeTarget,
       area,
       maxPrice: maxPrice ? Number(maxPrice) : null,
       keywords: parsedKws,
@@ -102,51 +127,20 @@ export function ResourceAnalyzerCard({
       onSubmit={handleSubmit}
       className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-sm space-y-3"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <FileSpreadsheet className="h-4 w-4 text-[var(--accent)] shrink-0" />
-          <h2 className="text-sm font-semibold">Riset Direktori Terpisah (Google Sheet &amp; Docs)</h2>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {COMMUNITY_PRESETS.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => {
-                setUrl(p.url);
-                triggerInspect(p.url);
-              }}
-              className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium cursor-pointer whitespace-nowrap transition-colors ${
-                url === p.url
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                  : "border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[var(--text-muted)]"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          type="url"
-          required
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Tempel link publik Google Sheets / Google Docs (https://docs.google.com/...)"
-          className="flex-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-2 text-sm text-[var(--text-primary)]"
-        />
-        <button
-          type="button"
-          disabled={inspecting || isRunning}
-          onClick={() => triggerInspect()}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-2 text-xs font-semibold hover:border-[var(--accent)] disabled:opacity-60 cursor-pointer whitespace-nowrap"
-        >
-          <Search className="h-3.5 w-3.5 text-[var(--accent)]" />
-          <span>{inspecting ? "Membaca..." : "Cek Statistik"}</span>
-        </button>
-      </div>
+      <ResourceSourcePicker
+        sourceMode={sourceMode}
+        presetId={presetId}
+        url={url}
+        presets={presets}
+        inspecting={inspecting}
+        isRunning={isRunning}
+        onChangeMode={setSourceMode}
+        onChangePreset={setPresetId}
+        onChangeUrl={setUrl}
+        onInspect={triggerInspect}
+        onSavePreset={handleSavePreset}
+        onDeletePreset={onDeletePreset}
+      />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
         <label className="space-y-1 lg:col-span-2">

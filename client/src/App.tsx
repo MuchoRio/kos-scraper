@@ -141,6 +141,7 @@ export function App() {
           <ResourceAnalyzerCard
             areas={ws.areas}
             landmarks={ws.landmarks}
+            presets={resWs.presets}
             settings={scrapeSettings}
             inspecting={resWs.inspecting}
             inspectStats={resWs.inspectStats}
@@ -149,6 +150,8 @@ export function App() {
             onOpenSettings={() => setIsSettingsOpen(true)}
             onInspect={resWs.inspectUrl}
             onRun={resWs.runAnalysis}
+            onSavePreset={resWs.savePreset}
+            onDeletePreset={resWs.deletePreset}
           />
         )}
 

@@ -30,7 +30,14 @@ _KNOWN_PLATFORM_DOMAINS = (
 )
 
 
-def _normalize_row(row_num: int, raw_map: dict[str, str], source_url: str, kid: str | None = None) -> dict[str, Any] | None:
+def _normalize_row(
+    row_num: int,
+    raw_map: dict[str, str],
+    source_url: str,
+    kid: str | None = None,
+    mask_source_url: bool = False,
+    source_tag: str = "resource",
+) -> dict[str, Any] | None:
     nama = _clean_cell(raw_map.get("nama"))
     if not nama:
         return None
@@ -69,7 +76,8 @@ def _normalize_row(row_num: int, raw_map: dict[str, str], source_url: str, kid: 
         peraturan.append(f"Kurasi: {qual}")
     price_cat = _strip_leading_emoji(_clean_cell(raw_map.get("kategori_harga")))
 
-    unique_url = contact_url or (f"{source_url.split('#')[0]}#row={kid or row_num}")
+    base_ref = f"server://{source_tag}" if mask_source_url else source_url.split("#")[0]
+    unique_url = contact_url or f"{base_ref}#row={kid or row_num}"
     return {
         "row_num": row_num,
         "id_kost": kid or f"ROW-{row_num}",
@@ -144,9 +152,18 @@ def _col_index_map(headers: list[str]) -> dict[str, int]:
     return {k: v for k, v in mapping.items() if v is not None}
 
 
-def load_google_resource(url: str, area: str = "jakarta-selatan", keywords: list[str] | None = None) -> dict[str, Any]:
+def load_google_resource(
+    url: str,
+    area: str = "jakarta-selatan",
+    keywords: list[str] | None = None,
+    mask_source_url: bool = False,
+    source_tag: str = "resource",
+) -> dict[str, Any]:
     """Load public Google Sheet or Google Doc (including Kostpedia sub-docs) into normalized rows."""
     info = parse_google_resource_url(url)
+    norm_fn = lambda rn, rm, su, kid=None: _normalize_row(
+        rn, rm, su, kid=kid, mask_source_url=mask_source_url, source_tag=source_tag
+    )
     if info["kind"] == "sheet":
         csv_raw = _fetch_text(f"https://docs.google.com/spreadsheets/d/{info['id']}/export?format=csv&gid={info['gid']}")
         table = list(csv.reader(io.StringIO(csv_raw)))
@@ -158,13 +175,13 @@ def load_google_resource(url: str, area: str = "jakarta-selatan", keywords: list
         for idx, r in enumerate(table[1:], start=1):
             raw_map = {k: (r[pos] if pos < len(r) else "") for k, pos in cmap.items()}
             kid = _clean_cell(raw_map.get("id"))
-            norm = _normalize_row(idx, raw_map, url, kid=kid)
+            norm = norm_fn(idx, raw_map, url, kid=kid)
             if norm:
                 rows.append(norm)
         schema = "kostpedia_19col" if "ID Kost" in headers else "directory_sheet"
         return {"kind": "sheet", "schema": schema, "headers": headers, "rows": rows, "sub_docs": []}
 
-    return load_google_doc(info["id"], url, area, keywords, _normalize_row, fetch_fn=lambda u: _fetch_text(u))
+    return load_google_doc(info["id"], url, area, keywords, norm_fn, fetch_fn=lambda u: _fetch_text(u))
 
 
 def compute_resource_stats(loaded: dict[str, Any]) -> dict[str, Any]:
